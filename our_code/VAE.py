@@ -51,29 +51,22 @@ class VAE(nn.Module):
     # Forward through the whole VAE
     def forward(self, x):
         self.xh = self.encoder(x)
-        self.mean_enc = self.z_mean(self.xh)
-        self.logvar_enc = self.z_logvar(self.xh)
-        self.z = self.sample_z(self.mean_enc,self.logvar_enc)
-        self.zh = self.decoder(self.z)
-        self.mean_dec = self.p_mean(self.zh)
-        self.logvar_dec = self.p_logvar(self.zh)
-        return self.mean_dec, self.logvar_dec, self.z, self.mean_enc, self.logvar_enc
+        mean_enc = self.z_mean(self.xh)
+        logvar_enc = self.z_logvar(self.xh)
+        z = self.sample_z(mean_enc, logvar_enc)
+        zh = self.decoder(z)
+        return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, self.z_logvar(self.xh)
 
     # Loss function: -rec.err + beta*KL-div
-    def get_loss(self, x, mean_dec, logvar_dec, z, mean_enc, logvar_enc, beta=1):
+    def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
         # self.mean_dec, self.logvar_dec, self.z, self.mean_enc, self.logvar_enc = mean_dec, logvar_dec, z, mean_enc, logvar_enc
-        self.re = -log_Bernoulli(x, self.mean_dec, dim=1)
-        print('re', self.re)
+        re = -log_Bernoulli(x, mean_dec, dim=1)
         # self.re = -log_Logistic_256(x, self.mean_dec, self.logvar_dec, dim=1) # TODO: make usable for other dimensions
-        
-        self.log_prior = log_Normal_standard(z, average=True, dim=1) # TODO: exchange with vampprior
-        print('log_prior', self.log_prior)
-        self.log_dec_posterior = log_Normal_diag(z, self.mean_enc, self.logvar_enc, average=True, dim=1)
-        print('log_dec_posterior', self.log_dec_posterior)
-        self.kl = -(self.log_prior - self.log_dec_posterior)
-        print('kl', self.kl)
-        self.l = -self.re + beta*self.kl
-        self.loss = torch.mean(self.l)
-        self.recon_err = torch.mean(self.re)
-        self.kullback = torch.mean(self.kl)
-        return self.loss, self.recon_err, self.kullback # TODO: do we need to return everything?
+        log_prior = log_Normal_standard(z, average=True, dim=1) # TODO: exchange with vampprior
+        log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, average=True, dim=1)
+        kl = -(log_prior - log_dec_posterior)
+        l = -re + beta*kl
+        loss = torch.mean(l)
+        recon_err = torch.mean(re)
+        kullback = torch.mean(kl)
+        return loss, recon_err, kullback # TODO: do we need to return everything?
