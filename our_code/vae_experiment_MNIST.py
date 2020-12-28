@@ -1,4 +1,5 @@
 import datetime
+import os.path as osp
 import torch
 import torch.optim as optim
 import os
@@ -12,24 +13,24 @@ from VAE import VAE
 
 # config
 config = {
-'seed': 14,
-'dataset_name': 'static_mnist',
-'model_name': 'vae',
-'prior': 'standard',
-'number_components': 500,
-'warmup': 0,
-'z1_size': 40,
-'z2_size': 40,
-'batch_size': 100,
-'test_batch_size': 100,
-'input_size': [1, 28, 28],
-'input_type': 'binary',
-'dynamic_binarization': False,
-'use_training_data_init': 1,
-'pseudoinputs_std': 0.01,
-'pseudoinputs_mean': 0.05,
-'learning_rate': 0.05,
-# '': ,
+    'seed': 14,
+    'dataset_name': 'static_mnist',
+    'model_name': 'vae',
+    'prior': 'standard',
+    'number_components': 500,
+    'warmup': 0,
+    'z1_size': 40,
+    'z2_size': 40,
+    'batch_size': 100,
+    'test_batch_size': 100,
+    'input_size': [1, 28, 28],
+    'input_type': 'binary',
+    'dynamic_binarization': False,
+    'use_training_data_init': 1,
+    'pseudoinputs_std': 0.01,
+    'pseudoinputs_mean': 0.05,
+    'learning_rate': 0.05,
+    'max_epoch': 2000,
 }
 
 # loading data (static mnist)
@@ -90,29 +91,59 @@ def plot_tensor(tensor):
     plt.imshow(img)
     plt.show()
 
+
 def main(args):
     torch.manual_seed(args['seed'])
     model_name = args['dataset_name'] + '_' + args['model_name'] + '_' + args['prior'] + '(K_' + str(args['number_components']) + ')' + '_wu(' + str(args['warmup']) + ')' + '_z1_' + str(args['z1_size']) + '_z2_' + str(args['z2_size'])
     print(args)
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
-    model = VAE(args)
+
+    # Check if a trained model exists
+    if osp.exists('./snapshots/model.model'):
+        with open('./snapshots/model.model', 'rb') as f:
+            model = torch.load(f)
+        print('--> Loaded from pretrained model')
+    else:  # Otherwise create and intialize a new model
+        model = VAE(args)
+        print('--> Initialized new model')
+
+    model.train()
     optimizer = AdamNormGrad(model.parameters(), lr=args['learning_rate'])
 
-    for i, data in enumerate(train_loader, 0):
-        optimizer.zero_grad()
-        print("\nTraining batch #", i)
-        # get input, data as the list of [inputs, label]
-        inputs, _ = data
-        mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
-        # print('mean_dec', mean_dec, 'logvar_dec', logvar_dec, 'z', z, 'mean_enc', mean_enc, 'logvar_enc', logvar_enc)
-        loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc)
-        loss.backward()
-        print('loss', loss.item(), 'RE', RE.item(), 'KL', KL.item())
-        optimizer.step()
+    for epoch in range(1, args['max_epoch']):
+        print(f'Epoch: {epoch}')
+        epoch_loss = 0
+        epoch_re = 0
+        epoch_kl = 0
 
-        # for m in model.modules():
-        #     print(m._get_name)
-        #     print(m.weight)
+        train_loss = []
+        train_re = []
+        train_kl = []
+
+        for i, data in enumerate(train_loader, 0):
+            optimizer.zero_grad()
+            # print("\nTraining batch #", i)
+            # get input, data as the list of [inputs, label]
+            inputs, _ = data
+            mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
+            loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc)
+            loss.backward()
+
+            if i == len(train_loader) / 2:
+                print('loss', loss.item(), 'RE', RE.item(), 'KL', KL.item())
+            optimizer.step()
+            train_loss.append(loss.item())
+            train_re.append(RE.item())
+            train_kl.append(KL.item())
+        
+        epoch_loss = sum(train_loss) / len(train_loader)
+        epoch_re = sum(train_re) / len(train_loader)
+        epoch_kl = sum(train_kl) / len(train_loader)
+
+        print(f'Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}')
+
+        with open('./snapshots/model.model', 'wb') as f:
+            torch.save(model, f)
 
 if __name__ == '__main__':
     main(config)
