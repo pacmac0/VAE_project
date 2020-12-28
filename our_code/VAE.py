@@ -11,7 +11,6 @@ class VAE(nn.Module):
         self.args = args
         self.n_hidden = 300
 
-
         # TODO check different layers of paper
         # encoder q(z|x)
         self.encoder = nn.Sequential(
@@ -34,6 +33,7 @@ class VAE(nn.Module):
             if type(m) == nn.Linear:
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
+
         # TODO check deprecated function xavier_uniform
         self.encoder.apply(init_weights)
         torch.nn.init.xavier_uniform(self.z_mean.weight)
@@ -50,12 +50,12 @@ class VAE(nn.Module):
 
     # Forward through the whole VAE
     def forward(self, x):
-        self.xh = self.encoder(x)
-        mean_enc = self.z_mean(self.xh)
-        logvar_enc = self.z_logvar(self.xh)
+        xh = self.encoder(x)
+        mean_enc = self.z_mean(xh)
+        logvar_enc = self.z_logvar(xh)
         z = self.sample_z(mean_enc, logvar_enc)
         zh = self.decoder(z)
-        return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, self.z_logvar(self.xh)
+        return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, logvar_enc
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):

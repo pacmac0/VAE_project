@@ -3,6 +3,7 @@ import torch
 import torch.optim as optim
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from adam_optimizer_original import AdamNormGrad
 import torch.utils.data as data_utils
@@ -79,22 +80,26 @@ def load_static_mnist(args):
 
     return train_loader, val_loader, test_loader, args
 
+def plot_tensor(tensor):
+    nparr = tensor.numpy()
+    img = np.reshape(nparr, (28, 28))
+    plt.figure()
+    plt.imshow(img)
+    plt.show()
+
 def main(args):
-    print("Starting...")
     torch.manual_seed(args['seed'])
-    timestamp = str(datetime.datetime.now())[0:19]
     model_name = args['dataset_name'] + '_' + args['model_name'] + '_' + args['prior'] + '(K_' + str(args['number_components']) + ')' + '_wu(' + str(args['warmup']) + ')' + '_z1_' + str(args['z1_size']) + '_z2_' + str(args['z2_size'])
-    print("args: \n", args)
+    print(args)
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
-    # create VAE model
     model = VAE(args)
     optimizer = AdamNormGrad(model.parameters(), lr=args['learning_rate'])
-    optimizer.zero_grad()
 
     for i, data in enumerate(train_loader, 0):
         print("\nTraining batch #", i)
         # get input, data as the list of [inputs, label]
         inputs, labels = data
+        plot_tensor(inputs[0])
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
         # print('mean_dec', mean_dec, 'logvar_dec', logvar_dec, 'z', z, 'mean_enc', mean_enc, 'logvar_enc', logvar_enc)
         loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc)
