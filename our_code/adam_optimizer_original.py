@@ -6,6 +6,9 @@ from torch.optim import Optimizer
 
 import math
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# THIS CODE IS FROM THE ORIGINAL PAPER ON VAE.
+# We use this implementation instead of the default pytorch implementation to
+# retain as much similarity with the paper as possible, since we will compare our results with theirs later.
 
 class AdamNormGrad(Optimizer):
     """Implements Adam algorithm.
