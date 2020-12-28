@@ -6,6 +6,7 @@ import numpy as np
 
 from adam_optimizer_original import AdamNormGrad
 import torch.utils.data as data_utils
+from VAE import VAE
 
 # config
 config = {
@@ -79,20 +80,26 @@ def load_static_mnist(args):
     return train_loader, val_loader, test_loader, args
 
 def main(args):
+    print("Starting...")
     torch.manual_seed(args['seed'])
     timestamp = str(datetime.datetime.now())[0:19]
     model_name = args['dataset_name'] + '_' + args['model_name'] + '_' + args['prior'] + '(K_' + str(args['number_components']) + ')' + '_wu(' + str(args['warmup']) + ')' + '_z1_' + str(args['z1_size']) + '_z2_' + str(args['z2_size'])
+    print("args: \n", args)
     # get data-set
+    print("Loading data...")
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
     # create VAE model
-    from VAE import VAE
+    print("Initialising model...")
     model = VAE(args)
     # provide optimization algorithm for gradiant decent
     optimizer = AdamNormGrad(model.parameters(), lr=args['learning_rate'])
     # Zero the parameters gradient
+    print("Resetting graident to zero...")
     optimizer.zero_grad()
 
+    print("Starting training...")
     for i, data in enumerate(train_loader, 0):
+        print("\nTraining batch #", i)
         # get input, data as the list of [inputs, label]
         inputs, labels = data
         
