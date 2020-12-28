@@ -2,8 +2,42 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
-from nn_utils import init_weights, init_layer_weights
+from nn_utils import init_weights, he_init
 from distribution_helpers import log_Normal_standard, log_Normal_diag, log_Logistic_256, log_Bernoulli
+
+# Taken from VAE paper
+class NonLinear(nn.Module):
+    def __init__(self, input_size, output_size, bias=True, activation=None):
+        super(NonLinear, self).__init__()
+
+        self.activation = activation
+        self.linear = nn.Linear(int(input_size), int(output_size), bias=bias)
+
+    def forward(self, x):
+        h = self.linear(x)
+        if self.activation is not None:
+            h = self.activation( h )
+
+        return h
+
+# Taken from VAE paper
+class GatedDense(nn.Module):
+    def __init__(self, input_size, output_size, activation=None):
+        super(GatedDense, self).__init__()
+
+        self.activation = activation
+        self.sigmoid = nn.Sigmoid()
+        self.h = nn.Linear(input_size, output_size)
+        self.g = nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        h = self.h(x)
+        if self.activation is not None:
+            h = self.activation( self.h( x ) )
+
+        g = self.sigmoid( self.g( x ) )
+
+        return h * g
 
 class VAE(nn.Module):
     def __init__(self, args):
@@ -14,29 +48,33 @@ class VAE(nn.Module):
         # TODO check different layers of paper
         # encoder q(z|x)
         self.encoder = nn.Sequential(
-            nn.Linear(np.prod(self.args['input_size']), self.n_hidden),
-            nn.Linear(self.n_hidden, self.n_hidden)
+            GatedDense(np.prod(self.args['input_size']), self.n_hidden),
+            GatedDense(self.n_hidden, self.n_hidden)
         )
         self.z_mean = nn.Linear(self.n_hidden, self.args['z1_size'])
-        self.z_logvar = nn.Linear(self.n_hidden, self.args['z1_size'])
+        self.z_logvar = NonLinear(self.n_hidden, self.args['z1_size'], activation=nn.Hardtanh(min_val=-6.,max_val=2.))
 
         # decoder p(x|z)
         self.decoder = nn.Sequential(
-            nn.Linear(self.args['z1_size'], self.n_hidden),
-            nn.Linear(self.n_hidden, self.n_hidden)
+            GatedDense(self.args['z1_size'], self.n_hidden),
+            GatedDense(self.n_hidden, self.n_hidden)
         )
-        self.p_mean = nn.Linear(self.n_hidden, np.prod(self.args['input_size']))
-        self.p_logvar = nn.Linear(self.n_hidden, np.prod(self.args['input_size']))
+        self.p_mean = NonLinear(self.n_hidden, np.prod(self.args['input_size']), activation=nn.Sigmoid())
+        self.p_logvar = NonLinear(self.n_hidden, np.prod(self.args['input_size']), activation=nn.Hardtanh(min_val=-4.5,max_val=0))
 
 
-        # TODO check deprecated function xavier_uniform
-        self.encoder.apply(init_weights)
-        init_layer_weights(self.z_mean)
-        init_layer_weights(self.z_logvar)
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                he_init(m)
 
-        self.decoder.apply(init_weights)
-        init_layer_weights(self.p_mean)
-        init_layer_weights(self.p_logvar)
+        # # TODO check deprecated function xavier_uniform
+        # self.encoder.apply(init_weights)
+        # he_init(self.z_mean)
+        # he_init(self.z_logvar)
+
+        # self.decoder.apply(init_weights)
+        # he_init(self.p_mean)
+        # he_init(self.p_logvar)
 
 
     # re-parameterization

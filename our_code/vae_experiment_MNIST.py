@@ -4,6 +4,7 @@ import torch.optim as optim
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import torch.nn as nn
 
 from adam_optimizer_original import AdamNormGrad
 import torch.utils.data as data_utils
@@ -98,6 +99,7 @@ def main(args):
     optimizer = AdamNormGrad(model.parameters(), lr=args['learning_rate'])
 
     for i, data in enumerate(train_loader, 0):
+        optimizer.zero_grad()
         print("\nTraining batch #", i)
         # get input, data as the list of [inputs, label]
         inputs, _ = data
@@ -107,10 +109,10 @@ def main(args):
         loss.backward()
         print('loss', loss.item(), 'RE', RE.item(), 'KL', KL.item())
         optimizer.step()
-        # optimizer.zero_grad() # Unsure if this should be here?
 
-        if i > 2:
-            break
+        # for m in model.modules():
+        #     print(m._get_name)
+        #     print(m.weight)
 
 if __name__ == '__main__':
     main(config)
