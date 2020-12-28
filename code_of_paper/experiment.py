@@ -67,7 +67,7 @@ parser.add_argument('--use_training_data_init', action='store_true', default=Fal
 parser.add_argument('--model_name', type=str, default='vae', metavar='MN',
                     help='model name: vae, hvae_2level, convhvae_2level, pixelhvae_2level')
 
-parser.add_argument('--prior', type=str, default='vampprior', metavar='P',
+parser.add_argument('--prior', type=str, default='standard', metavar='P',
                     help='prior: standard, vampprior')
 
 parser.add_argument('--input_type', type=str, default='binary', metavar='IT',
@@ -80,7 +80,7 @@ parser.add_argument('--MB', type=int, default=100, metavar='MBLL',
                     help='size of a mini-batch used for approximating log-likelihood')
 
 # dataset
-parser.add_argument('--dataset_name', type=str, default='freyfaces', metavar='DN',
+parser.add_argument('--dataset_name', type=str, default='static_mnist', metavar='DN',
                     help='name of the dataset: static_mnist, dynamic_mnist, omniglot, caltech101silhouettes, histopathologyGray, freyfaces, cifar10')
 
 parser.add_argument('--dynamic_binarization', action='store_true', default=False,

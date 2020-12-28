@@ -18,7 +18,7 @@ config = {
     'model_name': 'vae',
     'prior': 'standard',
     'number_components': 500,
-    'warmup': 0,
+    'warmup': 100,
     'z1_size': 40,
     'z2_size': 40,
     'batch_size': 100,
@@ -29,7 +29,7 @@ config = {
     'use_training_data_init': 1,
     'pseudoinputs_std': 0.01,
     'pseudoinputs_mean': 0.05,
-    'learning_rate': 0.05,
+    'learning_rate': 0.0005,
     'max_epoch': 2000,
 }
 
@@ -93,7 +93,7 @@ def plot_tensor(tensor):
 
 
 def main(args):
-    torch.manual_seed(args['seed'])
+    torch.manual_seed(14)
     model_name = args['dataset_name'] + '_' + args['model_name'] + '_' + args['prior'] + '(K_' + str(args['number_components']) + ')' + '_wu(' + str(args['warmup']) + ')' + '_z1_' + str(args['z1_size']) + '_z2_' + str(args['z2_size'])
     print(args)
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
@@ -111,10 +111,11 @@ def main(args):
     optimizer = AdamNormGrad(model.parameters(), lr=args['learning_rate'])
 
     for epoch in range(1, args['max_epoch']):
-        print(f'Epoch: {epoch}')
-        epoch_loss = 0
-        epoch_re = 0
-        epoch_kl = 0
+        # Warm up
+        beta = 1.* epoch / args['warmup']
+        if beta > 1.:
+            beta = 1.
+        print(f'--> beta: {beta}')
 
         train_loss = []
         train_re = []
@@ -126,7 +127,7 @@ def main(args):
             # get input, data as the list of [inputs, label]
             inputs, _ = data
             mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
-            loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc)
+            loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta)
             loss.backward()
 
             if i == len(train_loader) / 2:

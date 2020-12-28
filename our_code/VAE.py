@@ -67,15 +67,6 @@ class VAE(nn.Module):
             if isinstance(m, nn.Linear):
                 he_init(m)
 
-        # # TODO check deprecated function xavier_uniform
-        # self.encoder.apply(init_weights)
-        # he_init(self.z_mean)
-        # he_init(self.z_logvar)
-
-        # self.decoder.apply(init_weights)
-        # he_init(self.p_mean)
-        # he_init(self.p_logvar)
-
 
     # re-parameterization
     def sample_z(self, mean, logvar):
@@ -104,3 +95,11 @@ class VAE(nn.Module):
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta*kl
         return torch.mean(l), torch.mean(re), torch.mean(kl) # TODO: do we need to return everything?
+
+    def generate_x(self, N=25):
+        z_sample_rand = Variable(torch.FloatTensor(N, self.args['z1_size']).normal_())
+
+        z = self.decoder(z_sample_rand)
+        x_mean = self.p_mean(z)
+
+        return x_mean
