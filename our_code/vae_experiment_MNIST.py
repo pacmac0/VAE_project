@@ -80,6 +80,8 @@ def load_static_mnist(args):
 
     return train_loader, val_loader, test_loader, args
 
+
+# usage from main: plot_tensor(inputs[0])
 def plot_tensor(tensor):
     nparr = tensor.numpy()
     img = np.reshape(nparr, (28, 28))
@@ -98,15 +100,15 @@ def main(args):
     for i, data in enumerate(train_loader, 0):
         print("\nTraining batch #", i)
         # get input, data as the list of [inputs, label]
-        inputs, labels = data
-        plot_tensor(inputs[0])
+        inputs, _ = data
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
         # print('mean_dec', mean_dec, 'logvar_dec', logvar_dec, 'z', z, 'mean_enc', mean_enc, 'logvar_enc', logvar_enc)
         loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc)
         loss.backward()
-        optimizer.step()
-
         print('loss', loss.item(), 'RE', RE.item(), 'KL', KL.item())
+        optimizer.step()
+        # optimizer.zero_grad() # Unsure if this should be here?
+
         if i > 2:
             break
 
