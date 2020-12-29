@@ -103,3 +103,12 @@ class VAE(nn.Module):
         x_mean = self.p_mean(z)
 
         return x_mean
+
+    # Other methods for inspecting the model
+    def get_latent(self, x):
+        x_var = Variable(x)
+        xh = self.encoder(x_var)
+        z_mean = self.z_mean(xh)
+        z_logvar = self.z_logvar(xh)
+
+        return z_mean, z_logvar

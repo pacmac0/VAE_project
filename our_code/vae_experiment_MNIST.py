@@ -93,7 +93,7 @@ def plot_tensor(tensor):
 
 
 def main(args):
-    torch.manual_seed(14)
+    torch.manual_seed(42)
     model_name = args['dataset_name'] + '_' + args['model_name'] + '_' + args['prior'] + '(K_' + str(args['number_components']) + ')' + '_wu(' + str(args['warmup']) + ')' + '_z1_' + str(args['z1_size']) + '_z2_' + str(args['z2_size'])
     print(args)
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
