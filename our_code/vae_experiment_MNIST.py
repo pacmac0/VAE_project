@@ -10,7 +10,6 @@ import torch.nn as nn
 import torch.utils.data as data_utils
 from VAE import VAE
 
-# config
 config = {
     'seed': 14,
     'dataset_name': 'static_mnist',
@@ -32,9 +31,7 @@ config = {
     'max_epoch': 2000,
 }
 
-# loading data (static mnist)
 def load_static_mnist(args):
-    # set args
     args['input_size'] = [1, 28, 28]
     args['input_type'] = 'binary'
     args['dynamic_binarization'] = False
@@ -52,10 +49,8 @@ def load_static_mnist(args):
         lines = f.readlines()
     x_test = lines_to_np_array(lines).astype('float32')
 
-    # shuffle train data
     np.random.shuffle(x_train)
 
-    # idle y's
     y_train = np.zeros( (x_train.shape[0], 1) )
     y_val = np.zeros( (x_val.shape[0], 1) )
     y_test = np.zeros( (x_test.shape[0], 1) )
@@ -97,7 +92,6 @@ def main(args):
     print(args)
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
 
-    # Check if a trained model exists
     if osp.exists('./snapshots/model.model'):
         with open('./snapshots/model.model', 'rb') as f:
             model = torch.load(f)
@@ -120,7 +114,7 @@ def main(args):
         train_re = []
         train_kl = []
 
-        for i, data in enumerate(train_loader, 0):
+        for i, data in enumerate(train_loader):
             optimizer.zero_grad()
             # print("\nTraining batch #", i)
             # get input, data as the list of [inputs, label]
