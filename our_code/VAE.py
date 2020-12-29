@@ -106,6 +106,13 @@ class VAE(nn.Module):
 
 def training(model, train_loader, max_epoch, warmup, file_name, 
         learning_rate=0.0005):
+
+    if torch.cuda.is_available():
+        dev = 'cuda'
+    else:
+        dev = 'cpu'
+    device = torch.device(dev)
+
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -126,6 +133,7 @@ def training(model, train_loader, max_epoch, warmup, file_name,
 
             # get input, data as the list of [inputs, label]
             inputs, _ = data
+            inputs = inputs.to(dev)
 
             # forward
             mean_dec, logvar_dec, z, mean_enc, logvar_enc = \

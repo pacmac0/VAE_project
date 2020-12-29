@@ -131,6 +131,18 @@ def main(args):
         + str(args["z2_size"])
     )
     print(args)
+
+    # use GPU
+    if torch.cuda.is_available():
+        dev = 'cuda'
+        print("--> Using GPU Cuda")
+    else:
+        dev = 'cpu'
+        torch.set_num_threads(8) # threading on cpu only
+        print("--> Using CPU")
+
+    device = torch.device(dev) 
+
     # TODO: refactor load_static_mnist
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
 
@@ -143,6 +155,7 @@ def main(args):
     else:  # Otherwise create and intialize a new model
         model = VAE(args)
         print("--> Initialized new model")
+    model.to(device)
 
     max_epoch = args["max_epoch"]
     warmup = args["warmup"]
@@ -157,5 +170,4 @@ def main(args):
     )
     
 if __name__ == "__main__":
-    torch.set_num_threads(8)
     main(config)
