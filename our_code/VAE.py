@@ -5,39 +5,27 @@ from torch.autograd import Variable
 from nn_utils import init_weights, he_init
 from distribution_helpers import log_Normal_standard, log_Normal_diag, log_Logistic_256, log_Bernoulli
 
-# Taken from VAE paper
 class NonLinear(nn.Module):
-    def __init__(self, input_size, output_size, bias=True, activation=None):
+    def __init__(self, in_dim, out_dim, bias=True, activation=None):
         super(NonLinear, self).__init__()
-
         self.activation = activation
-        self.linear = nn.Linear(int(input_size), int(output_size), bias=bias)
+        self.linear = nn.Linear(int(in_dim), int(out_dim), bias=bias)
 
     def forward(self, x):
-        h = self.linear(x)
+        hh = self.linear(x)
         if self.activation is not None:
-            h = self.activation( h )
+            hh = self.activation(hh)
+        return hh
 
-        return h
-
-# Taken from VAE paper
 class GatedDense(nn.Module):
-    def __init__(self, input_size, output_size, activation=None):
+    def __init__(self, in_dim, out_dim):
         super(GatedDense, self).__init__()
-
-        self.activation = activation
+        self.h = nn.Linear(int(in_dim), int(out_dim))
+        self.g = nn.Linear(int(in_dim), int(out_dim))
         self.sigmoid = nn.Sigmoid()
-        self.h = nn.Linear(input_size, output_size)
-        self.g = nn.Linear(input_size, output_size)
 
     def forward(self, x):
-        h = self.h(x)
-        if self.activation is not None:
-            h = self.activation( self.h( x ) )
-
-        g = self.sigmoid( self.g( x ) )
-
-        return h * g
+        return self.h(x) * self.sigmoid(self.g(x))
 
 class VAE(nn.Module):
     def __init__(self, args):
@@ -45,13 +33,13 @@ class VAE(nn.Module):
         self.args = args
         self.n_hidden = 300
 
-        # TODO check different layers of paper
         # encoder q(z|x)
         self.encoder = nn.Sequential(
             GatedDense(np.prod(self.args['input_size']), self.n_hidden),
             GatedDense(self.n_hidden, self.n_hidden)
         )
         self.z_mean = nn.Linear(self.n_hidden, self.args['z1_size'])
+        # TODO: why use these min,max values?
         self.z_logvar = NonLinear(self.n_hidden, self.args['z1_size'], activation=nn.Hardtanh(min_val=-6.,max_val=2.))
 
         # decoder p(x|z)
@@ -60,20 +48,19 @@ class VAE(nn.Module):
             GatedDense(self.n_hidden, self.n_hidden)
         )
         self.p_mean = NonLinear(self.n_hidden, np.prod(self.args['input_size']), activation=nn.Sigmoid())
+        # TODO: why use these min,max values?
         self.p_logvar = NonLinear(self.n_hidden, np.prod(self.args['input_size']), activation=nn.Hardtanh(min_val=-4.5,max_val=0))
 
-
+        # initialise weights
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 he_init(m)
-
-
+    
     # re-parameterization
     def sample_z(self, mean, logvar):
         e = Variable(torch.randn(self.args['z1_size'])) # ~ N(0,1)
         stddev = torch.exp(logvar / 2)
         return mean + stddev * e
-
 
     # Forward through the whole VAE
     def forward(self, x):
@@ -87,19 +74,17 @@ class VAE(nn.Module):
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
-        # self.mean_dec, self.logvar_dec, self.z, self.mean_enc, self.logvar_enc = mean_dec, logvar_dec, z, mean_enc, logvar_enc
         re = log_Bernoulli(x, mean_dec, dim=1)
-        # self.re = -log_Logistic_256(x, self.mean_dec, self.logvar_dec, dim=1) # TODO: make usable for other dimensions
-        log_prior = log_Normal_standard(z, dim=1) # TODO: exchange with vampprior
+        log_prior = log_Normal_standard(z, dim=1) # TODO: vampprior
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta*kl
-        return torch.mean(l), torch.mean(re), torch.mean(kl) # TODO: do we need to return everything?
+        return torch.mean(l), torch.mean(re), torch.mean(kl)
 
     def generate_x(self, N=25):
-        z_sample_rand = Variable(torch.FloatTensor(N, self.args['z1_size']).normal_())
-
+        z_sample_rand = Variable(
+            torch.FloatTensor(N, self.args['z1_size']).normal_()
+        )
         z = self.decoder(z_sample_rand)
         x_mean = self.p_mean(z)
-
         return x_mean
