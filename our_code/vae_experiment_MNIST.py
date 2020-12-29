@@ -32,6 +32,16 @@ config = {
     "file_name_model": "./snapshots/model.model",
 }
 
+# use GPU
+if torch.cuda.is_available():
+    dev = 'cuda'
+    print("--> Using GPU Cuda")
+else:
+    dev = 'cpu'
+    torch.set_num_threads(8) # threading on cpu only
+    print("--> Using CPU")
+
+device = torch.device(dev) 
 
 def load_static_mnist(args):
     args["input_size"] = [1, 28, 28]
@@ -132,17 +142,7 @@ def main(args):
     )
     print(args)
 
-    # use GPU
-    if torch.cuda.is_available():
-        dev = 'cuda'
-        print("--> Using GPU Cuda")
-    else:
-        dev = 'cpu'
-        torch.set_num_threads(8) # threading on cpu only
-        print("--> Using CPU")
-
-    device = torch.device(dev) 
-
+    
     # TODO: refactor load_static_mnist
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
 

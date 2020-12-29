@@ -2,8 +2,15 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-with open("./snapshots/model.model", "rb") as f:
-    model = torch.load(f)
+if torch.cuda.is_available():
+    device = torch.device('gpu')
+    with open("./snapshots/model.model", "rb") as f:
+        model = torch.load(f).to(device)
+else:
+    device = torch.device('cpu')
+    with open("./snapshots/model.model", "rb") as f:
+        model = torch.load(f,map_location=torch.device('cpu')).to(device)
+
 
 samples = model.generate_x()
 samples = samples.data.cpu().numpy()
