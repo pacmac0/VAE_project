@@ -1,33 +1,23 @@
 import torch
 
-# const.
 min_epsilon = 1e-5
 max_epsilon = 1.-1e-5
 
 
-def log_Normal_standard(x, average=False, dim=None):
+def log_Normal_standard(x, dim=None):
     log_normal = -0.5 * torch.pow( x , 2 )
-    if average:
-        return torch.mean( log_normal, dim )
-    else:
-        return torch.sum( log_normal, dim )
+    return torch.sum( log_normal, dim )
 
-def log_Normal_diag(x, mean, log_var, average=False, dim=None):
+def log_Normal_diag(x, mean, log_var, dim=None):
     log_normal = -0.5 * ( log_var + torch.pow( x - mean, 2 ) / torch.exp( log_var ) )
-    if average:
-        return torch.mean( log_normal, dim )
-    else:
-        return torch.sum( log_normal, dim )
+    return torch.sum( log_normal, dim )
 
-def log_Bernoulli(x, mean, average=False, dim=None):
+def log_Bernoulli(x, mean, dim=None):
     probs = torch.clamp( mean, min=min_epsilon, max=max_epsilon )
     log_bernoulli = x * torch.log( probs ) + (1. - x ) * torch.log( 1. - probs )
-    if average:
-        return torch.mean( log_bernoulli, dim )
-    else:
-        return torch.sum( log_bernoulli, dim )
+    return torch.sum( log_bernoulli, dim )
 
-def log_Logistic_256(x, mean, logvar, average=False, reduce=True, dim=None):
+def log_Logistic_256(x, mean, logvar, reduce=True, dim=None):
     bin_size = 1. / 256.
 
     # implementation like https://github.com/openai/iaf/blob/master/tf_utils/distributions.py#L28
@@ -39,10 +29,4 @@ def log_Logistic_256(x, mean, logvar, average=False, reduce=True, dim=None):
     # calculate final log-likelihood for an image
     log_logist_256 = - torch.log(cdf_plus - cdf_minus + 1.e-7)
 
-    if reduce:
-        if average:
-            return torch.mean(log_logist_256, dim)
-        else:
-            return torch.sum(log_logist_256, dim)
-    else:
-        return log_logist_256
+    return torch.sum(log_logist_256, dim) if reduce else log_logist_256
