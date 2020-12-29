@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
+import torch.optim as optim
 from nn_utils import init_weights, he_init
 from distribution_helpers import (
     log_Normal_standard,
@@ -9,7 +10,6 @@ from distribution_helpers import (
     log_Logistic_256,
     log_Bernoulli,
 )
-
 
 class NonLinear(nn.Module):
     def __init__(self, in_dim, out_dim, bias=True, activation=None):
@@ -103,3 +103,63 @@ class VAE(nn.Module):
         z = self.decoder(z_sample_rand)
         x_mean = self.p_mean(z)
         return x_mean
+
+def training(model, train_loader, max_epoch, warmup, file_name, 
+        learning_rate=0.0005):
+    model.train()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    for epoch in range(1, max_epoch):
+        # Warm up
+        beta = 1.0 * epoch / warmup
+        if beta > 1.0:
+            beta = 1.0
+        print(f"--> beta: {beta}")
+
+        train_loss = []
+        train_re = []
+        train_kl = []
+
+        for i, data in enumerate(train_loader):
+            optimizer.zero_grad()
+            # print("\nTraining batch #", i)
+
+            # get input, data as the list of [inputs, label]
+            inputs, _ = data
+
+            # forward
+            mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
+                model.forward(inputs)
+
+            # calculate loss
+            loss, RE, KL = model.get_loss(
+                inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta
+            )
+
+            # backpropagate
+            loss.backward()
+
+            if i == len(train_loader) / 2:
+                print(
+                    "loss", loss.item(), 
+                    "RE", RE.item(), 
+                    "KL", KL.item()
+                )
+
+            optimizer.step()
+
+            # collect epoch statistics
+            train_loss.append(loss.item())
+            train_re.append(RE.item())
+            train_kl.append(KL.item())
+
+        epoch_loss = sum(train_loss) / len(train_loader)
+        epoch_re = sum(train_re) / len(train_loader)
+        epoch_kl = sum(train_kl) / len(train_loader)
+
+        print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}")
+
+        # save parameters
+        with open(file_name, "wb") as f:
+            torch.save(model, f)
+

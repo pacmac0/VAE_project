@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 
 import torch.utils.data as data_utils
-from VAE import VAE
+from VAE import VAE, training
 
 config = {
     "seed": 14,
@@ -29,6 +29,7 @@ config = {
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
     "max_epoch": 2000,
+    "file_name_model": "./snapshots/model.model",
 }
 
 
@@ -130,58 +131,31 @@ def main(args):
         + str(args["z2_size"])
     )
     print(args)
+    # TODO: refactor load_static_mnist
     train_loader, val_loader, test_loader, args = load_static_mnist(args)
 
-    if osp.exists("./snapshots/model.model"):
-        with open("./snapshots/model.model", "rb") as f:
+    # If a snapshot exist in /snapshots then use trained weights
+    file_name = args["file_name_model"]
+    if osp.exists(file_name):
+        with open(file_name, "rb") as f:
             model = torch.load(f)
         print("--> Loaded from pretrained model")
     else:  # Otherwise create and intialize a new model
         model = VAE(args)
         print("--> Initialized new model")
 
-    model.train()
-    optimizer = optim.Adam(model.parameters(), lr=args["learning_rate"])
-
-    for epoch in range(1, args["max_epoch"]):
-        # Warm up
-        beta = 1.0 * epoch / args["warmup"]
-        if beta > 1.0:
-            beta = 1.0
-        print(f"--> beta: {beta}")
-
-        train_loss = []
-        train_re = []
-        train_kl = []
-
-        for i, data in enumerate(train_loader):
-            optimizer.zero_grad()
-            # print("\nTraining batch #", i)
-            # get input, data as the list of [inputs, label]
-            inputs, _ = data
-            mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
-            loss, RE, KL = model.get_loss(
-                inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta
-            )
-            loss.backward()
-
-            if i == len(train_loader) / 2:
-                print("loss", loss.item(), "RE", RE.item(), "KL", KL.item())
-            optimizer.step()
-            train_loss.append(loss.item())
-            train_re.append(RE.item())
-            train_kl.append(KL.item())
-
-        epoch_loss = sum(train_loss) / len(train_loader)
-        epoch_re = sum(train_re) / len(train_loader)
-        epoch_kl = sum(train_kl) / len(train_loader)
-
-        print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}")
-
-        with open("./snapshots/model.model", "wb") as f:
-            torch.save(model, f)
-
-
+    max_epoch = args["max_epoch"]
+    warmup = args["warmup"]
+    learning_rate = args["learning_rate"]
+    training(
+        model,
+        train_loader, 
+        max_epoch, 
+        warmup, 
+        file_name, 
+        learning_rate
+    )
+    
 if __name__ == "__main__":
     torch.set_num_threads(8)
     main(config)
