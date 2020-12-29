@@ -147,5 +147,6 @@ def main(args):
             torch.save(model, f)
 
 if __name__ == '__main__':
+    torch.set_num_threads(8)
     main(config)
 
