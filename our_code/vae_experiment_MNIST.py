@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 
-from adam_optimizer_original import AdamNormGrad
 import torch.utils.data as data_utils
 from VAE import VAE
 
@@ -108,7 +107,7 @@ def main(args):
         print('--> Initialized new model')
 
     model.train()
-    optimizer = AdamNormGrad(model.parameters(), lr=args['learning_rate'])
+    optimizer = optim.Adam(model.parameters(), lr=args['learning_rate'])
 
     for epoch in range(1, args['max_epoch']):
         # Warm up
