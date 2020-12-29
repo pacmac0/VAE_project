@@ -37,59 +37,45 @@ def load_static_mnist(args):
     args["input_size"] = [1, 28, 28]
     args["input_type"] = "binary"
     args["dynamic_binarization"] = False
-
-    # start processing (load presplitted data sets)
-    def lines_to_np_array(lines):
-        return np.array([[int(i) for i in line.split()] for line in lines])
-
+    # load each file separate
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
     ) as f:
         lines = f.readlines()
-    x_train = lines_to_np_array(lines).astype("float32")
+    train_data = np.array([[int(i) for i in l.split()] for l in lines]).astype("float32")
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_valid.amat")
     ) as f:
         lines = f.readlines()
-    x_val = lines_to_np_array(lines).astype("float32")
+    evaluation_data = np.array([[int(i) for i in l.split()] for l in lines]).astype("float32")
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_test.amat")
     ) as f:
         lines = f.readlines()
-    x_test = lines_to_np_array(lines).astype("float32")
+    test_data = np.array([[int(i) for i in l.split()] for l in lines]).astype("float32")
 
-    np.random.shuffle(x_train)
+    train_labels = np.zeros((train_data.shape[0], 1))
+    evaluation_labels = np.zeros((evaluation_data.shape[0], 1))
+    test_labels = np.zeros((test_data.shape[0], 1))
 
-    y_train = np.zeros((x_train.shape[0], 1))
-    y_val = np.zeros((x_val.shape[0], 1))
-    y_test = np.zeros((x_test.shape[0], 1))
-
-    # pytorch data loader
-    train = data_utils.TensorDataset(
-        torch.from_numpy(x_train), torch.from_numpy(y_train)
-    )
+    # pytorch data loader to create tensors
     train_loader = data_utils.DataLoader(
-        train, batch_size=args["batch_size"], shuffle=True
-    )
+        data_utils.TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_labels)), 
+        batch_size=args["batch_size"], shuffle=True)
 
-    validation = data_utils.TensorDataset(
-        torch.from_numpy(x_val).float(), torch.from_numpy(y_val)
-    )
-    val_loader = data_utils.DataLoader(
-        validation, batch_size=args["test_batch_size"], shuffle=False
-    )
+    eval_loader = data_utils.DataLoader(
+        data_utils.TensorDataset(torch.from_numpy(evaluation_data), torch.from_numpy(evaluation_labels)), 
+        batch_size=args["test_batch_size"], shuffle=False)
 
-    test = data_utils.TensorDataset(
-        torch.from_numpy(x_test).float(), torch.from_numpy(y_test)
-    )
     test_loader = data_utils.DataLoader(
-        test, batch_size=args["test_batch_size"], shuffle=True
-    )
+        data_utils.TensorDataset(torch.from_numpy(test_data), torch.from_numpy(test_labels)), 
+        batch_size=args["test_batch_size"], shuffle=True)
 
-    # setting pseudo-inputs inits
+    # setting pseudo-inputs inits, for use of vamp-prior
+    """
     if args["use_training_data_init"] == 1:
         args["pseudoinputs_std"] = 0.01
-        init = x_train[0 : args["number_components"]].T
+        init = train_data[0 : args["number_components"]].T
         args["pseudoinputs_mean"] = torch.from_numpy(
             init
             + args["pseudoinputs_std"]
@@ -98,9 +84,8 @@ def load_static_mnist(args):
     else:
         args["pseudoinputs_mean"] = 0.05
         args["pseudoinputs_std"] = 0.01
-
-    return train_loader, val_loader, test_loader, args
-
+    """
+    return train_loader, eval_loader, test_loader, args
 
 # usage from main: plot_tensor(inputs[0])
 def plot_tensor(tensor):
@@ -144,7 +129,7 @@ def main(args):
     device = torch.device(dev) 
 
     # TODO: refactor load_static_mnist
-    train_loader, val_loader, test_loader, args = load_static_mnist(args)
+    train_loader, eval_loader, test_loader, args = load_static_mnist(args)
 
     # If a snapshot exist in /snapshots then use trained weights
     file_name = args["file_name_model"]
