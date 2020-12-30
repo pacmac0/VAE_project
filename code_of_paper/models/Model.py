@@ -8,9 +8,10 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 from utils.nn import normal_init, NonLinear
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#=======================================================================================================================
+# =======================================================================================================================
 class Model(nn.Module):
     def __init__(self, args):
         super(Model, self).__init__()
@@ -22,16 +23,28 @@ class Model(nn.Module):
 
         nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
 
-        self.means = NonLinear(self.args.number_components, np.prod(self.args.input_size), bias=False, activation=nonlinearity)
+        self.means = NonLinear(
+            self.args.number_components,
+            np.prod(self.args.input_size),
+            bias=False,
+            activation=nonlinearity,
+        )
 
         # init pseudo-inputs
         if self.args.use_training_data_init:
             self.means.linear.weight.data = self.args.pseudoinputs_mean
         else:
-            normal_init(self.means.linear, self.args.pseudoinputs_mean, self.args.pseudoinputs_std)
+            normal_init(
+                self.means.linear,
+                self.args.pseudoinputs_mean,
+                self.args.pseudoinputs_std,
+            )
 
         # create an idle input for calling pseudo-inputs
-        self.idle_input = Variable(torch.eye(self.args.number_components, self.args.number_components), requires_grad=False)
+        self.idle_input = Variable(
+            torch.eye(self.args.number_components, self.args.number_components),
+            requires_grad=False,
+        )
         if self.args.cuda:
             self.idle_input = self.idle_input.cuda()
 
@@ -45,16 +58,17 @@ class Model(nn.Module):
         return eps.mul(std).add_(mu)
 
     def calculate_loss(self):
-        return 0.
+        return 0.0
 
     def calculate_likelihood(self):
-        return 0.
+        return 0.0
 
     def calculate_lower_bound(self):
-        return 0.
+        return 0.0
 
     # THE MODEL: FORWARD PASS
     def forward(self, x):
-        return 0.
+        return 0.0
 
-#=======================================================================================================================
+
+# =======================================================================================================================
