@@ -1,10 +1,9 @@
+# https://debuggercafe.com/getting-started-with-variational-autoencoder-using-pytorch/
 import torch
-import torchvision.transforms as transforms
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import datasets
 from torchvision.utils import save_image
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -54,7 +53,7 @@ class LinearVAE(nn.Module):
 def fit(model, dataloader, optimizer, criterion):
     model.train()
     running_loss = 0.0
-    for i, data in enumerate(dataloader):
+    for data in dataloader:
         data, _ = data
         data = data.to(device)
         data = data.view(data.size(0), -1)
@@ -116,3 +115,6 @@ def run(e):
         train_loss.append(fit(model, train_loader, optimizer, criterion))
         val_loss.append(validate(model, val_loader, e.batch_size, criterion, e.val_data, epoch))
         print(f"Train Loss: {train_loss[-1]:.4f}, val loss: {val_loss[-1]:.4f}")
+
+        with open("model.model", "wb") as f:
+            torch.save(model, f)
