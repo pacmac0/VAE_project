@@ -99,19 +99,19 @@ def final_loss(bce_loss, mu, logvar):
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     return bce_loss + KLD
 
-def run(epochs, batch_size, lr, train_data, val_data):
+def run(e):
     model = LinearVAE().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=e.lr)
     criterion = nn.BCELoss(reduction="sum")
 
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(e.train_data, batch_size=e.batch_size, shuffle=True)
+    val_loader = DataLoader(e.val_data, batch_size=e.batch_size, shuffle=False)
     train_loss = []
     val_loss = []
-    for epoch in range(epochs):
-        print(f"Epoch {epoch+1} of {epochs}")
+    for epoch in range(e.epochs):
+        print(f"Epoch {epoch+1} of {e.epochs}")
         train_epoch_loss = fit(model, train_loader, optimizer, criterion)
-        val_epoch_loss = validate(model, val_loader, batch_size, criterion, val_data, epoch)
+        val_epoch_loss = validate(model, val_loader, e.batch_size, criterion, e.val_data, epoch)
         train_loss.append(train_epoch_loss)
         val_loss.append(val_epoch_loss)
         print(f"Train Loss: {train_epoch_loss:.4f}")
