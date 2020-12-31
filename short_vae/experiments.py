@@ -9,11 +9,12 @@ from model import run
 from torchvision import datasets
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
+from scipy.io import loadmat
 
 torch.set_num_threads(8)
 
 class Experiment():
-    def __init__(self, epochs, batch_size, lr, transforms, training_data, validation_data):
+    def __init__(self, epochs, batch_size, lr, transforms, training_data, validation_data=None):
         self.epochs = epochs
         self.batch_size = batch_size
         self.transforms = transforms
@@ -31,5 +32,6 @@ def mnist():
         root="../input/data", train=False, download=True, transform=transform
     )
     run(Experiment(20, 64, 0.0001, transform, train_data, val_data))
+
 
 mnist()
