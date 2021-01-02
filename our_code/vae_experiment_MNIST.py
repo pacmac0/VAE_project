@@ -6,27 +6,28 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
+import time
 
 import torch.utils.data as data_utils
-from VAE import VAE, training
+from VAE import VAE, training, testing
 
 config = {
-    "seed": 14,
-    "dataset_name": "static_mnist",
-    "model_name": "vae",
-    "prior": "standard",
-    "number_components": 500,
+    #"seed": 14,
+    #"dataset_name": "static_mnist",
+    #"model_name": "vae",
+    "prior": "vamp", # standard
+    "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
-    "z2_size": 40,
+    #"z2_size": 40,
     "batch_size": 100,
     "test_batch_size": 100,
     "input_size": [1, 28, 28],
     "input_type": "binary",
-    "dynamic_binarization": False,
-    "use_training_data_init": 1,
-    "pseudoinputs_std": 0.01,
-    "pseudoinputs_mean": 0.05,
+    #"dynamic_binarization": False,
+    #"use_training_data_init": 1,
+    #"pseudoinputs_std": 0.01,
+    #"pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
     "max_epoch": 2000,
     "file_name_model": "./snapshots/model.model",
@@ -46,7 +47,7 @@ device = torch.device(dev)
 def load_static_mnist(args):
     args["input_size"] = [1, 28, 28]
     args["input_type"] = "binary"
-    args["dynamic_binarization"] = False
+    #args["dynamic_binarization"] = False
     # load each file separate
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
@@ -81,20 +82,6 @@ def load_static_mnist(args):
         data_utils.TensorDataset(torch.from_numpy(test_data), torch.from_numpy(test_labels)), 
         batch_size=args["test_batch_size"], shuffle=True)
 
-    # setting pseudo-inputs inits, for use of vamp-prior
-    """
-    if args["use_training_data_init"] == 1:
-        args["pseudoinputs_std"] = 0.01
-        init = train_data[0 : args["number_components"]].T
-        args["pseudoinputs_mean"] = torch.from_numpy(
-            init
-            + args["pseudoinputs_std"]
-            * np.random.randn(np.prod(args["input_size"]), args["number_components"])
-        ).float()
-    else:
-        args["pseudoinputs_mean"] = 0.05
-        args["pseudoinputs_std"] = 0.01
-    """
     return train_loader, eval_loader, test_loader, args
 
 # usage from main: plot_tensor(inputs[0])
@@ -108,27 +95,10 @@ def plot_tensor(tensor):
 
 def main(args):
     torch.manual_seed(14)
-    model_name = (
-        args["dataset_name"]
-        + "_"
-        + args["model_name"]
-        + "_"
-        + args["prior"]
-        + "(K_"
-        + str(args["number_components"])
-        + ")"
-        + "_wu("
-        + str(args["warmup"])
-        + ")"
-        + "_z1_"
-        + str(args["z1_size"])
-        + "_z2_"
-        + str(args["z2_size"])
-    )
     print(args)
 
-    
     # TODO: refactor load_static_mnist
+    print("--> Loading data... ")
     train_loader, eval_loader, test_loader, args = load_static_mnist(args)
 
     # If a snapshot exist in /snapshots then use trained weights
@@ -142,6 +112,9 @@ def main(args):
         print("--> Initialized new model")
     model.to(device)
 
+    print("--> Starting training")
+    start_time = time.time()
+
     max_epoch = args["max_epoch"]
     warmup = args["warmup"]
     learning_rate = args["learning_rate"]
@@ -153,6 +126,16 @@ def main(args):
         file_name, 
         learning_rate
     )
+    end_time = time.time()
+    time_diff = end_time - start_time
+    print("--> Training done, time elapsed: ", time_diff)
+    print("--> Testing on test data")
+    testing(
+        model,
+        train_loader, 
+        test_loader
+    )
+    print("--> Finito")
     
 if __name__ == "__main__":
     main(config)
