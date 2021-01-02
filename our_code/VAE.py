@@ -120,7 +120,7 @@ class VAE(nn.Module):
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
         re = log_Bernoulli(x, mean_dec, dim=1)
-        log_prior = get_prior()
+        log_prior = get_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta * kl
@@ -130,15 +130,15 @@ class VAE(nn.Module):
         if self.args['prior'] == 'standard':
             return log_Normal_standard(z, dim=1)
         elif self.args['prior'] == 'vamp':
+            # put all pseudo-inputs through encoder
             xh = self.encoder(self.pseudo_inputs)
             pseudo_means = self.z_mean(xh)
             pseudo_logvars = self.z_logvar(xh)
-
-            print(torch.exp(log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)))
-            #print(torch.sum(log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)))
-            #print()
-
-            return torch.sum(log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)) / self.args['pseudo_components']
+            # sum togther variational posteriors, eq. (9)
+            logs = log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)
+            s =  torch.sum(torch.exp(logs) 
+            K = self.args['pseudo_components']
+            return s / K # eq. (9)
 
     def generate_x(self, N=25):
         z_sample_rand = Variable(torch.FloatTensor(N, self.args["z1_size"]).normal_()).to(device)
