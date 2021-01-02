@@ -120,7 +120,7 @@ class VAE(nn.Module):
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
         re = log_Bernoulli(x, mean_dec, dim=1)
-        log_prior = get_prior(z)
+        log_prior = self.get_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta * kl
@@ -136,7 +136,7 @@ class VAE(nn.Module):
             pseudo_logvars = self.z_logvar(xh)
             # sum togther variational posteriors, eq. (9)
             logs = log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)
-            s =  torch.sum(torch.exp(logs) 
+            s =  torch.sum(torch.exp(logs)) 
             K = self.args['pseudo_components']
             return s / K # eq. (9)
 
