@@ -67,11 +67,40 @@ class VAE(nn.Module):
         )
 
         # initialise weights for linear layers, not activations
-        # https://www.researchgate.net/publication/215616968_Understanding_the_diffi    culty_of_training_deep_feedforward_neural_networks [12], eq. (16).
+        # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_training_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
             if type(m) == nn.Linear:
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
+
+        """
+        # pseudo layer
+        self.z_logvar = nn.Sequential(
+            nn.Linear(self.args['pseudo_components'] * np.prod(self.args["input_size"]), bias=False),
+            nn.Hardtanh(min_val=-4.0, max_val=4.0) # check min, max values
+        )
+        """
+        # aprox. pseudo input
+
+    def init_pseudo_inputs(self):
+        import os
+        import torch.utils.data as data_utils
+        with open(
+        os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
+        ) as f:
+            lines = f.readlines()
+            train_data = np.array([[int(i) for i in l.split()] for l in lines]).astype("float32")
+        train_labels = np.zeros((train_data.shape[0], 1))
+        train_loader = data_utils.DataLoader(
+            data_utils.TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_labels)), 
+            batch_size=self.args["pseudo_components"], shuffle=True)
+
+        for i, data in enumerate(train_loader):
+            inputs, _ = data
+            inputs = inputs.to(device)
+            self.pseudo_inputs = inputs
+            return
+
 
     # re-parameterization
     def sample_z(self, mean, logvar):
@@ -91,11 +120,25 @@ class VAE(nn.Module):
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
         re = log_Bernoulli(x, mean_dec, dim=1)
-        log_prior = log_Normal_standard(z, dim=1)  # TODO: vampprior
+        log_prior = get_prior()
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta * kl
         return torch.mean(l), torch.mean(re), torch.mean(kl)
+
+    def get_prior(self, z):
+        if self.args['prior'] == 'standard':
+            return log_Normal_standard(z, dim=1)
+        elif self.args['prior'] == 'vamp':
+            xh = self.encoder(self.pseudo_inputs)
+            pseudo_means = self.z_mean(xh)
+            pseudo_logvars = self.z_logvar(xh)
+
+            print(torch.exp(log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)))
+            #print(torch.sum(log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)))
+            #print()
+
+            return torch.sum(log_Normal_diag(z, pseudo_means ,pseudo_logvars, dim=1)) / self.args['pseudo_components']
 
     def generate_x(self, N=25):
         z_sample_rand = Variable(torch.FloatTensor(N, self.args["z1_size"]).normal_()).to(device)

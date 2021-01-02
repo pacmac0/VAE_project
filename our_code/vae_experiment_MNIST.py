@@ -14,8 +14,8 @@ config = {
     "seed": 14,
     "dataset_name": "static_mnist",
     "model_name": "vae",
-    "prior": "standard",
-    "number_components": 500,
+    "prior": "vamp",
+    "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
     "z2_size": 40,
@@ -30,6 +30,8 @@ config = {
     "learning_rate": 0.0005,
     "max_epoch": 2000,
     "file_name_model": "./snapshots/model.model",
+    "pseudoinputs_mean": "0.01",
+    "pseudoinputs_std": "0.1",
 }
 
 # use GPU
@@ -115,7 +117,7 @@ def main(args):
         + "_"
         + args["prior"]
         + "(K_"
-        + str(args["number_components"])
+        + str(args["pseudo_components"])
         + ")"
         + "_wu("
         + str(args["warmup"])
@@ -127,7 +129,6 @@ def main(args):
     )
     print(args)
 
-    
     # TODO: refactor load_static_mnist
     train_loader, eval_loader, test_loader, args = load_static_mnist(args)
 
@@ -141,6 +142,13 @@ def main(args):
         model = VAE(args)
         print("--> Initialized new model")
     model.to(device)
+
+    # used for testing 
+    """
+    model.init_pseudo_inputs()
+    model.get_prior(2)
+    return
+    """
 
     max_epoch = args["max_epoch"]
     warmup = args["warmup"]
