@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
 import torch.optim as optim
+import time
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
@@ -153,7 +154,7 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    for epoch in range(1, max_epoch):
+    for epoch in range(1, max_epoch+1):
         # Warm up
         # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
         beta = 1.0 * epoch / warmup_period
@@ -164,6 +165,8 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
         train_loss = []
         train_re = []
         train_kl = []
+
+        start_epoch_time = time.time()
 
         for i, data in enumerate(train_loader):
             optimizer.zero_grad()
@@ -203,9 +206,41 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
         epoch_re = sum(train_re) / len(train_loader)
         epoch_kl = sum(train_kl) / len(train_loader)
 
-        print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}")
+        end_epoch_time = time.time()
+        epoch_time_diff = end_epoch_time - start_epoch_time
+
+        print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}")
 
         # save parameters
         with open(file_name, "wb") as f:
             torch.save(model, f)
+
+def testing(model, train_loader, test_loader):
+    test_loss = []
+    test_re = []
+    test_kl = []
+
+    # evaulation mode
+    model.eval()
+
+    for i, data in enumerate(test_loader):
+        # get input, data as the list of [inputs, label]
+        inputs, _ = data
+        inputs = inputs.to(device)
+
+        mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
+            model.forward(inputs)
+        loss, RE, KL = model.get_loss(
+            inputs, mean_dec, z, mean_enc, logvar_enc, beta=1.0
+        )
+
+        test_loss.append(loss.item())
+        test_re.append(RE.item())
+        test_kl.append(KL.item())
+
+    mean_loss = sum(test_loss) / len(test_loader)
+    mean_re = sum(test_re) / len(test_loader)
+    mean_kl = sum(test_kl) / len(test_loader)
+
+    print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")
 
