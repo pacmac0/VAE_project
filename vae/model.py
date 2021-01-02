@@ -14,37 +14,28 @@ class LinearVAE(nn.Module):
     def __init__(self):
         super(LinearVAE, self).__init__()
 
-        # encoder
         self.enc1 = nn.Linear(in_features=784, out_features=512)
         self.enc2 = nn.Linear(in_features=512, out_features=features * 2)
 
-        # decoder
         self.dec1 = nn.Linear(in_features=features, out_features=512)
         self.dec2 = nn.Linear(in_features=512, out_features=784)
 
 
-    def reparameterize(self, mu, log_var):
-        """
-        :param mu: mean from the encoder's latent space
-        :param log_var: log variance from the encoder's latent space
-        """
-        std = torch.exp(0.5 * log_var)  # standard deviation
-        eps = torch.randn_like(std)  # `randn_like` as we need the same size
-        sample = mu + (eps * std)  # sampling as if coming from the input space
-        return sample
+    def sample_z(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        return mu + (eps * std)
 
 
     def forward(self, x):
-        # encoding
         x = F.relu(self.enc1(x))
         x = self.enc2(x).view(-1, 2, features)
-        # get `mu` and `log_var`
+
         mu = x[:, 0, :]  # the first feature values as mean
         log_var = x[:, 1, :]  # the other feature values as variance
-        # get the latent vector through reparameterization
-        z = self.reparameterize(mu, log_var)
 
-        # decoding
+        z = self.sample_z(mu, log_var)
+
         x = F.relu(self.dec1(z))
         reconstruction = torch.sigmoid(self.dec2(x))
         return reconstruction, mu, log_var
@@ -81,16 +72,6 @@ def validate(model, dataloader, batch_size, criterion, val_data, epoch):
             loss = final_loss(bce_loss, mu, logvar)
             running_loss += loss.item()
 
-            # save the last batch input and output of every epoch
-            if i == int(len(val_data) / dataloader.batch_size) - 1:
-                num_rows = 8
-                both = torch.cat(
-                    (
-                        data.view(batch_size, 1, 28, 28)[:8],
-                        reconstruction.view(batch_size, 1, 28, 28)[:8],
-                    )
-                )
-                save_image(both.cpu(), f"outputs/output{epoch}.png", nrow=num_rows)
     val_loss = running_loss / len(dataloader.dataset)
     return val_loss
 
