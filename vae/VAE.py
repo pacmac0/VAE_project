@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import torch.nn as nn
+import torch
 
 features = 16
 
