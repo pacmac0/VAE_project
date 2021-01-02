@@ -11,27 +11,25 @@ import torch.utils.data as data_utils
 from VAE import VAE, training
 
 config = {
-    "seed": 14,
-    "dataset_name": "static_mnist",
-    "model_name": "vae",
-    "prior": "vamp",
+    #"seed": 14,
+    #"dataset_name": "static_mnist",
+    #"model_name": "vae",
+    "prior": "vamp", # standard
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
-    "z2_size": 40,
+    #"z2_size": 40,
     "batch_size": 100,
     "test_batch_size": 100,
     "input_size": [1, 28, 28],
     "input_type": "binary",
-    "dynamic_binarization": False,
-    "use_training_data_init": 1,
-    "pseudoinputs_std": 0.01,
-    "pseudoinputs_mean": 0.05,
+    #"dynamic_binarization": False,
+    #"use_training_data_init": 1,
+    #"pseudoinputs_std": 0.01,
+    #"pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
     "max_epoch": 2000,
     "file_name_model": "./snapshots/model.model",
-    "pseudoinputs_mean": "0.01",
-    "pseudoinputs_std": "0.1",
 }
 
 # use GPU
@@ -48,7 +46,7 @@ device = torch.device(dev)
 def load_static_mnist(args):
     args["input_size"] = [1, 28, 28]
     args["input_type"] = "binary"
-    args["dynamic_binarization"] = False
+    #args["dynamic_binarization"] = False
     # load each file separate
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
@@ -110,23 +108,6 @@ def plot_tensor(tensor):
 
 def main(args):
     torch.manual_seed(14)
-    model_name = (
-        args["dataset_name"]
-        + "_"
-        + args["model_name"]
-        + "_"
-        + args["prior"]
-        + "(K_"
-        + str(args["pseudo_components"])
-        + ")"
-        + "_wu("
-        + str(args["warmup"])
-        + ")"
-        + "_z1_"
-        + str(args["z1_size"])
-        + "_z2_"
-        + str(args["z2_size"])
-    )
     print(args)
 
     # TODO: refactor load_static_mnist
@@ -142,13 +123,6 @@ def main(args):
         model = VAE(args)
         print("--> Initialized new model")
     model.to(device)
-
-    # used for testing 
-    """
-    model.init_pseudo_inputs()
-    model.get_prior(2)
-    return
-    """
 
     max_epoch = args["max_epoch"]
     warmup = args["warmup"]
