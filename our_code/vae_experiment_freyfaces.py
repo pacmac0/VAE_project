@@ -14,14 +14,11 @@ if __name__ == "__main__":
     np.random.shuffle(ff)
     ff_torch = torch.from_numpy(ff)
 
-    train_size = 1565
-    test_size = 200
+    train_size = 1765
     train = ff_torch[:train_size]
-    test = ff_torch[train_size:train_size+test_size]
-    val = ff_torch[train_size+test_size:]
+    val = ff_torch[train_size:]
 
     train_loader = torch.utils.data.DataLoader(train, batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test, batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val, batch_size, shuffle=True)
 
-    train_loader, test_loader, val_loader
+    train_loader, val_loader
