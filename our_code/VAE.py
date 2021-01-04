@@ -70,14 +70,6 @@ class VAE(nn.Module):
             nn.Hardtanh(min_val=-4.0, max_val=4.0),
         )
 
-        # init a layer that will learn pseudos
-        if self.args["prior"] == "vamp": 
-            self.pseudos = nn.Sequential(
-                nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"]), bias=False),
-                nn.Hardtanh(min_val=0, max_val=1)
-                )
-
         # initialise weights for linear layers, not activations
         # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_training_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
