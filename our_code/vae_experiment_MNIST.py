@@ -31,6 +31,7 @@ config = {
     "learning_rate": 0.0005,
     "max_epoch": 2000,
     "file_name_model": "./snapshots/model.model",
+    'pseudo_from_data': True,
 }
 
 # use GPU
