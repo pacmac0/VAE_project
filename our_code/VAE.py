@@ -6,6 +6,7 @@ import torch.optim as optim
 import time
 import os
 import torch.utils.data as data_utils
+from collections import OrderedDict 
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
