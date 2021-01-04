@@ -170,7 +170,7 @@ def training(model, train_loader, epochs, warmup_period, learning_rate=0.0005):
         )
 
         # save parameters
-        with open("./snapshots/mnist_model", "wb") as f:
+        with open(config["model_path"], "wb") as f:
             torch.save(model, f)
 
 

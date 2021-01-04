@@ -20,7 +20,7 @@ config = {
     "input_size": [1, 28, 20],
     "input_type": "binary",
     "learning_rate": 0.0005,
-    "epochs": 200,
+    "epochs": 2000,
     "model_path": "./models/freyfaces"
 }
 
