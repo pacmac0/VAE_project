@@ -85,25 +85,17 @@ class VAE(nn.Module):
                 if m.bias is not None:
                     m.bias.data.fill_(0.01)
              
-    # use random training samples as pseudo-inputs
-    '''
-    def init_training_pseudo_inputs(self):
-        with open(
-        os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
-        ) as f:
-            lines = f.readlines()
-            train_data = np.array([[int(i) for i in l.split()] for l in lines]).astype("float32")
-        train_labels = np.zeros((train_data.shape[0], 1))
-        train_loader = data_utils.DataLoader(
-            data_utils.TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_labels)), 
-            batch_size=self.args["pseudo_components"], shuffle=True)
-
-        for i, data in enumerate(train_loader):
-            inputs, _ = data
-            inputs = inputs.to(device)
-            self.training_pseudo_inputs = inputs
-            return
-    '''
+        # init a layer that will learn pseudos
+        if self.args["prior"] == "vamp": 
+            self.pseudos = nn.Sequential(OrderedDict([
+                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["input_size"]), bias=False)),
+                ('activation', nn.Hardtanh(min_val=0, max_val=1))
+            ]))
+            # init pseudo layer
+            if args['pseudo_from_data'] == True:
+                self.pseudos.linear.weight.data = self.args['pseudo_mean']
+            else: # just set them from arguments
+                self.pseudos.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
 
     # re-parameterization
     def sample_z(self, mean, logvar):
