@@ -70,24 +70,23 @@ class VAE(nn.Module):
         )
 
         # init a layer that will learn pseudos
-        if self.args["prior"] == "vamp" and not self.args["pseudos_training_data"]:
+        if self.args["prior"] == "vamp": 
             self.pseudos = nn.Sequential(
                 nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"])),
-                nn.Hardtanh(min_val=0.01, max_val=0.99)
+                    np.prod(self.args["input_size"]), bias=False),
+                nn.Hardtanh(min_val=0, max_val=1)
                 )
-        if self.args["prior"] == "vamp" and self.args["pseudos_training_data"]:
-            # otherwise initialise pseudos as random training samples
-            self.init_training_pseudo_inputs()
 
         # initialise weights for linear layers, not activations
         # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_training_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
             if type(m) == nn.Linear:
                 torch.nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
+                if m.bias is not None:
+                    m.bias.data.fill_(0.01)
              
     # use random training samples as pseudo-inputs
+    '''
     def init_training_pseudo_inputs(self):
         with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
@@ -104,6 +103,7 @@ class VAE(nn.Module):
             inputs = inputs.to(device)
             self.training_pseudo_inputs = inputs
             return
+    '''
 
     # re-parameterization
     def sample_z(self, mean, logvar):
@@ -122,17 +122,13 @@ class VAE(nn.Module):
 
     def get_log_prior(self, z):
         if self.args['prior'] == 'vamp':
-            # put all pseudo-inputs through encoder
-            if self.args["pseudos_training_data"]: # pseudos=train samples
-                xh = self.encoder(self.training_pseudo_inputs)
-            else: # use learnable pseudos
-                # dummy one hot encoding identity matrix for pseudos
-                gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
-                pseudos = self.pseudos(gradient_start)
-                xh = self.encoder(pseudos)
+            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            pseudos = self.pseudos(gradient_start)
+            xh = self.encoder(pseudos)
             # encoded pseudos
             pseudo_means = self.z_mean(xh)
             pseudo_logvars = self.z_logvar(xh)
+            
             # sum togther variational posteriors, eq. (9)
             logs = log_Normal_diag(z, pseudo_means, pseudo_logvars, dim=1)
             s = torch.sum(torch.exp(logs))

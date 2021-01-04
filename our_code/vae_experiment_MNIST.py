@@ -24,7 +24,6 @@ config = {
     "test_batch_size": 100,
     "input_size": [1, 28, 28],
     "input_type": "binary",
-    "pseudos_training_data": True, # non trainable pseudo-inputs
     #"dynamic_binarization": False,
     #"use_training_data_init": 1,
     #"pseudoinputs_std": 0.01,
