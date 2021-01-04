@@ -15,11 +15,6 @@ def training(
 
     for epoch in range(1, max_epoch + 1):
         start_epoch_time = time.time()
-        # Warm up
-        # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
-        beta = 1.0 * epoch / warmup_period
-        if beta > 1.0:
-            beta = 1.0
 
         train_loss = []
         train_re = []
@@ -28,15 +23,13 @@ def training(
         for inputs in train_loader:
             optimizer.zero_grad()
             # print("\nTraining batch #", i)
-
             inputs = inputs.to(device)
-
             # forward
             mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
 
             # calculate loss
             loss, RE, KL = model.get_loss(
-                inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta
+                inputs, mean_dec, z, mean_enc, logvar_enc, beta=1
             )
             # backpropagate
             loss.backward()
@@ -57,6 +50,9 @@ def training(
         print(
             f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}"
         )
+
+        with open(file_name, "wb") as f:
+            torch.save(model, f)
 
 
 def testing(model, test_loader):
@@ -103,7 +99,7 @@ config = {
     # "pseudoinputs_std": 0.01,
     # "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "max_epoch": 2000,
+    "max_epoch": 100,
     "file_name_model": "./snapshots/model.model",
 }
 

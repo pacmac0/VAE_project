@@ -28,7 +28,9 @@ for i, sample in enumerate(samples):
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.set_aspect("equal")
-    sample = sample.reshape(1, 28, 28)
+
+    sample = sample.reshape(1, 28, 20) # frey faces
+    # sample = sample.reshape(1, 28, 28) # mnist
     sample = sample.swapaxes(0, 2)
     sample = sample.swapaxes(0, 1)
     sample = sample[:, :, 0]

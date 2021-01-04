@@ -230,8 +230,8 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
         print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}")
 
         # save parameters
-        # with open(file_name, "wb") as f:
-        #     torch.save(model, f)
+        with open(file_name, "wb") as f:
+            torch.save(model, f)
 
 def testing(model, train_loader, test_loader):
     test_loss = []
