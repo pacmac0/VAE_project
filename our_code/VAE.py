@@ -18,7 +18,6 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
     def __init__(self, in_dim, out_dim):
@@ -47,7 +46,7 @@ class VAE(nn.Module):
         # TODO: play around with min max vals for hardtanh
         self.z_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, self.args["z1_size"], bias=True),
-            nn.Hardtanh(min_val=-4.0, max_val=4.0),
+            nn.Hardtanh(min_val=0, max_val=1),
         )
 
         # decoder p(x|z)
@@ -66,7 +65,7 @@ class VAE(nn.Module):
         # OBS: we're not using this for discrete data
         self.p_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, np.prod(self.args["input_size"]), bias=True),
-            nn.Hardtanh(min_val=-4.0, max_val=4.0),
+            nn.Hardtanh(min_val=0, max_val=1),
         )
 
         # init a layer that will learn pseudos
@@ -122,24 +121,37 @@ class VAE(nn.Module):
 
     def get_log_prior(self, z):
         if self.args['prior'] == 'vamp':
+            print("VAMP")
             gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
             pseudos = self.pseudos(gradient_start)
             xh = self.encoder(pseudos)
             # encoded pseudos
             pseudo_means = self.z_mean(xh)
             pseudo_logvars = self.z_logvar(xh)
-            
+
+            # squeeze stuff to correct dims
+            # to match with the batch size for z
+            z = z.unsqueeze(1)
+            means = pseudo_means.unsqueeze(0)
+            logvars = pseudo_logvars.unsqueeze(0)
+
             # sum togther variational posteriors, eq. (9)
-            logs = log_Normal_diag(z, pseudo_means, pseudo_logvars, dim=1)
+            logs = log_Normal_diag(z, means, logvars, dim=1)
             s = torch.sum(torch.exp(logs))
             K = self.args['pseudo_components']
             return torch.log(s / K) # logged eq.(9)
         else: # std gaussian
+            print("STANDRARD")
             return log_Normal_standard(z, dim=1)
         
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
+        print("---------------------")
+        print("mean_dec: ", mean_dec)
+        print("mean_enc: ", mean_enc)
+        print("logvar_enc: ", logvar_enc)
         re = log_Bernoulli(x, mean_dec, dim=1)
+        print("RECON ERR:" , re)
         log_prior = self.get_log_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
