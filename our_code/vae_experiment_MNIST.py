@@ -82,6 +82,16 @@ def load_static_mnist(args):
         data_utils.TensorDataset(torch.from_numpy(test_data), torch.from_numpy(test_labels)), 
         batch_size=args["test_batch_size"], shuffle=True)
 
+    # get pseudo init params from random data
+    if args['pseudo_from_data'] == True:
+        args['pseudo_std'] = 0.01
+        np.random.shuffle(train_data)
+        #print("DIM: {}".format(train_data.shape))
+        dat = train_data[0 : int(args['pseudo_components']) ].T # make columns components(data-points)
+        #print("DIM: {}".format(dat.shape))
+        rand_std_norm = np.random.randn(np.prod(args['input_size']), args['pseudo_components'])
+        args['pseudo_mean'] = torch.from_numpy(dat + args['pseudo_std'] * rand_std_norm).float()
+        
     return train_loader, eval_loader, test_loader, args
 
 # usage from main: plot_tensor(inputs[0])
