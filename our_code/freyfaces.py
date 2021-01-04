@@ -5,15 +5,27 @@ import torch
 import numpy as np
 import torch.optim as optim
 from VAE import VAE
+from eval_generate import generate
 
+config = {
+    "prior": "standard",  # "vamp", # standard
+    "pseudo_components": 500,
+    "warmup": 100,
+    "z1_size": 40,
+    "batch_size": 100,
+    "input_size": [1, 28, 20],
+    "input_type": "binary",
+    "learning_rate": 0.0005,
+    "epochs": 200,
+}
 
-def training(
-    model, train_loader, max_epoch, warmup_period, file_name, learning_rate=0.0005
+def train(
+    model, train_loader, epochs, warmup_period, learning_rate=0.0005
 ):
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    for epoch in range(1, max_epoch + 1):
+    for epoch in range(1, epochs + 1):
         start_epoch_time = time.time()
 
         train_loss = []
@@ -28,9 +40,7 @@ def training(
             mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
 
             # calculate loss
-            loss, RE, KL = model.get_loss(
-                inputs, mean_dec, z, mean_enc, logvar_enc, beta=1
-            )
+            loss, RE, KL = model.get_loss(inputs, mean_dec, z, mean_enc, logvar_enc)
             # backpropagate
             loss.backward()
             optimizer.step()
@@ -51,11 +61,11 @@ def training(
             f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}"
         )
 
-        with open(file_name, "wb") as f:
+        with open("snapshots/freyfaces", "wb") as f:
             torch.save(model, f)
 
 
-def testing(model, test_loader):
+def test(model, test_loader):
     test_loss = []
     test_re = []
     test_kl = []
@@ -63,9 +73,8 @@ def testing(model, test_loader):
     # evaulation mode
     model.eval()
 
-    for i, data in enumerate(test_loader):
+    for inputs in test_loader:
         # get input, data as the list of [inputs, label]
-        inputs = data
         inputs = inputs.to(device)
 
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(inputs)
@@ -82,34 +91,14 @@ def testing(model, test_loader):
     print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")
 
 
-config = {
-    # "seed": 14,
-    # "dataset_name": "static_mnist",
-    # "model_name": "vae",
-    "prior": "standard",  # "vamp", # standard
-    "pseudo_components": 500,
-    "warmup": 100,
-    "z1_size": 40,
-    # "z2_size": 40,
-    "batch_size": 100,
-    "input_size": [1, 28, 20],
-    "input_type": "binary",
-    # "dynamic_binarization": False,
-    # "use_training_data_init": 1,
-    # "pseudoinputs_std": 0.01,
-    # "pseudoinputs_mean": 0.05,
-    "learning_rate": 0.0005,
-    "max_epoch": 100,
-    "file_name_model": "./snapshots/model.model",
-}
 
 if torch.cuda.is_available():
     dev = "cuda"
-    print("--> Using GPU Cuda")
+    print("GPU")
 else:
     dev = "cpu"
     torch.set_num_threads(8)  # threading on cpu only
-    print("--> Using CPU")
+    print("CPU")
 
 device = torch.device(dev)
 
@@ -117,32 +106,29 @@ device = torch.device(dev)
 if __name__ == "__main__":
     path = "datasets/freyfaces/frey_rawface.mat"
 
-    ff = loadmat(path)
+    data = loadmat(path)
     # static mnist shape: torch.Size([100, 784])
-    ff = ff["ff"].T.reshape((-1, 28 * 20)).astype("float32") / 255.0
-    ff = ff[: int(len(ff) / config["batch_size"]) * config["batch_size"]]
-    np.random.shuffle(ff)
-    ff_torch = torch.from_numpy(ff)
+    data = data["ff"].T.reshape((-1, 28 * 20)).astype("float32") / 255.0
+    data = data[: int(len(data) / config["batch_size"]) * config["batch_size"]]
+    np.random.shuffle(data)
+    ff_torch = torch.from_numpy(data)
 
     train_size = 1765
-    train = ff_torch[:train_size]
-    val = ff_torch[train_size:]
-
     train_loader = torch.utils.data.DataLoader(
-        train, config["batch_size"], shuffle=True
+        ff_torch[:train_size], config["batch_size"], shuffle=True
     )
-    val_loader = torch.utils.data.DataLoader(val, config["batch_size"], shuffle=True)
+    val_loader = torch.utils.data.DataLoader(ff_torch[train_size:], config["batch_size"], shuffle=True)
 
     model = VAE(config)
     model.to(device)
 
-    training(
+    train(
         model,
         train_loader,
-        config["max_epoch"],
+        config["epochs"],
         config["warmup"],
-        config["file_name_model"],
         config["learning_rate"],
     )
 
-    testing(model, val_loader)
+    test(model, val_loader)
+    generate("./snapshots/freyfaces", False)

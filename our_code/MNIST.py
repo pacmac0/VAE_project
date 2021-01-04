@@ -10,6 +10,7 @@ import time
 
 import torch.utils.data as data_utils
 from VAE import VAE
+from eval_generate import generate
 
 config = {
     "prior": "vamp",  # standard
@@ -109,14 +110,6 @@ def load_static_mnist(args):
 
     return train_loader, eval_loader, test_loader, args
 
-
-# usage from main: plot_tensor(inputs[0])
-def plot_tensor(tensor):
-    nparr = tensor.numpy()
-    img = np.reshape(nparr, (28, 28))
-    plt.figure()
-    plt.imshow(img)
-    plt.show()
 
 
 def training(model, train_loader, epochs, warmup_period, learning_rate=0.0005):
@@ -225,7 +218,6 @@ if __name__ == "__main__":
     training(model, train_loader, epochs, warmup, learning_rate)
     end_time = time.time()
     time_diff = end_time - start_time
-    print("--> Training done, time elapsed: ", time_diff)
-    print("--> Testing on test data")
+    print("Training done, time elapsed: ", time_diff)
     testing(model, train_loader, test_loader)
-    print("--> Finito")
+    generate("./snapshots/mnist_model")

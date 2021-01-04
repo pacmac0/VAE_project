@@ -150,16 +150,15 @@ class VAE(nn.Module):
             )  # MB x 1
             return log_prior
         else:  # std gaussian
-            print("STANDRARD")
             return log_Normal_standard(z, dim=1)
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
-        print("mean_dec: ", mean_dec)
-        print("mean_enc: ", mean_enc)
-        print("logvar_enc: ", logvar_enc)
+        # print("mean_dec: ", mean_dec)
+        # print("mean_enc: ", mean_enc)
+        # print("logvar_enc: ", logvar_enc)
         re = log_Bernoulli(x, mean_dec, dim=1)
-        print("RECON ERR:", re)
+        # print("RECON ERR:", re)
         log_prior = self.get_log_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
