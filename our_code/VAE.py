@@ -6,7 +6,8 @@ import torch.optim as optim
 import time
 import os
 import torch.utils.data as data_utils
-from collections import OrderedDict 
+from collections import OrderedDict
+import math
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
@@ -15,9 +16,9 @@ from distribution_helpers import (
 )
 
 if torch.cuda.is_available():
-    device = torch.device('cuda')
+    device = torch.device("cuda")
 else:
-    device = torch.device('cpu')
+    device = torch.device("cpu")
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
@@ -76,18 +77,31 @@ class VAE(nn.Module):
                 torch.nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     m.bias.data.fill_(0.01)
-             
+
         # init a layer that will learn pseudos
-        if self.args["prior"] == "vamp": 
-            self.pseudos = nn.Sequential(OrderedDict([
-                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["input_size"]), bias=False)),
-                ('activation', nn.Hardtanh(min_val=0, max_val=1))
-            ]))
+        if self.args["prior"] == "vamp":
+            self.pseudos = nn.Sequential(
+                OrderedDict(
+                    [
+                        (
+                            "linear",
+                            nn.Linear(
+                                self.args["pseudo_components"],
+                                np.prod(self.args["input_size"]),
+                                bias=False,
+                            ),
+                        ),
+                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
+                    ]
+                )
+            )
             # init pseudo layer
-            if args['pseudo_from_data'] == True:
-                self.pseudos.linear.weight.data = self.args['pseudo_mean']
-            else: # just set them from arguments
-                self.pseudos.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
+            if args["pseudo_from_data"] == True:
+                self.pseudos.linear.weight.data = self.args["pseudo_mean"]
+            else:  # just set them from arguments
+                self.pseudos.linear.weight.data.normal_(
+                    self.args["pseudo_mean"], self.args["pseudo_std"]
+                )
 
     # re-parameterization
     def sample_z(self, mean, logvar):
@@ -105,9 +119,13 @@ class VAE(nn.Module):
         return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, logvar_enc
 
     def get_log_prior(self, z):
-        if self.args['prior'] == 'vamp':
-            print("VAMP")
-            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+        if self.args["prior"] == "vamp":
+            gradient_start = Variable(
+                torch.eye(
+                    self.args["pseudo_components"], self.args["pseudo_components"]
+                ),
+                requires_grad=False,
+            ).to(device)
             pseudos = self.pseudos(gradient_start)
             xh = self.encoder(pseudos)
             # encoded pseudos
@@ -121,22 +139,27 @@ class VAE(nn.Module):
             logvars = pseudo_logvars.unsqueeze(0)
 
             # sum togther variational posteriors, eq. (9)
-            logs = log_Normal_diag(z, means, logvars, dim=1)
-            s = torch.sum(torch.exp(logs))
-            K = self.args['pseudo_components']
-            return torch.log(s / K) # logged eq.(9)
-        else: # std gaussian
+            a = log_Normal_diag(z, means, logvars, dim=2) - math.log(
+                self.args["pseudo_components"]
+            )  # MB x C
+            a_max, _ = torch.max(a, 1)  # MB x 1
+
+            # calculte log-sum-exp
+            log_prior = a_max + torch.log(
+                torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)
+            )  # MB x 1
+            return log_prior
+        else:  # std gaussian
             print("STANDRARD")
             return log_Normal_standard(z, dim=1)
-        
+
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
-        print("---------------------")
         print("mean_dec: ", mean_dec)
         print("mean_enc: ", mean_enc)
         print("logvar_enc: ", logvar_enc)
         re = log_Bernoulli(x, mean_dec, dim=1)
-        print("RECON ERR:" , re)
+        print("RECON ERR:", re)
         log_prior = self.get_log_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
@@ -144,10 +167,15 @@ class VAE(nn.Module):
         return torch.mean(l), torch.mean(re), torch.mean(kl)
 
     def generate_x(self, N=25):
-        if self.args['prior'] == 'vamp':
-            # a dummy one hot encoding identitiy matrix 
+        if self.args["prior"] == "vamp":
+            # a dummy one hot encoding identitiy matrix
             # where the backprop will stop
-            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            gradient_start = Variable(
+                torch.eye(
+                    self.args["pseudo_components"], self.args["pseudo_components"]
+                ),
+                requires_grad=False,
+            ).to(device)
             # sample N learned pseudo-inputs
             pseudos = self.pseudos(gradient_start)[0:N]
             # put through encoder
@@ -156,108 +184,13 @@ class VAE(nn.Module):
             ps_logvar_enc = self.z_logvar(ps_h)
             # re-param
             z_samples = self.sample_z(ps_mean_enc, ps_logvar_enc)
-        else: # standard prior
+        else:  # standard prior
             # sample N latent points from std gaussian prior
-            z_samples = Variable(torch.FloatTensor(N, self.args["z1_size"]).normal_()).to(device)
+            z_samples = Variable(
+                torch.FloatTensor(N, self.args["z1_size"]).normal_()
+            ).to(device)
 
         # decode and use means sample data
         z = self.decoder(z_samples)
         x_mean = self.p_mean(z)
         return x_mean
-
-def training(model, train_loader, max_epoch, warmup_period, file_name, 
-        learning_rate=0.0005):
-
-    model.train()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-    for epoch in range(1, max_epoch+1):
-        # Warm up
-        # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
-        beta = 1.0 * epoch / warmup_period
-        if beta > 1.0:
-            beta = 1.0
-        print(f"--> beta: {beta}")
-
-        train_loss = []
-        train_re = []
-        train_kl = []
-
-        start_epoch_time = time.time()
-
-        for i, data in enumerate(train_loader):
-            optimizer.zero_grad()
-            # print("\nTraining batch #", i)
-
-            # get input, data as the list of [inputs, label]
-            inputs, _ = data
-            print(inputs)
-            inputs = inputs.to(device)
-
-            # forward
-            mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
-                model.forward(inputs)
-
-            # calculate loss
-            loss, RE, KL = model.get_loss(
-                inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta
-            )
-
-            # backpropagate
-            loss.backward()
-
-            if i == len(train_loader) / 2:
-                print(
-                    "loss", loss.item(), 
-                    "RE", RE.item(), 
-                    "KL", KL.item()
-                )
-
-            optimizer.step()
-
-            # collect epoch statistics
-            train_loss.append(loss.item())
-            train_re.append(RE.item())
-            train_kl.append(KL.item())
-
-        epoch_loss = sum(train_loss) / len(train_loader)
-        epoch_re = sum(train_re) / len(train_loader)
-        epoch_kl = sum(train_kl) / len(train_loader)
-
-        end_epoch_time = time.time()
-        epoch_time_diff = end_epoch_time - start_epoch_time
-
-        print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}")
-
-        # save parameters
-        with open(file_name, "wb") as f:
-            torch.save(model, f)
-
-def testing(model, train_loader, test_loader):
-    test_loss = []
-    test_re = []
-    test_kl = []
-
-    # evaulation mode
-    model.eval()
-
-    for i, data in enumerate(test_loader):
-        # get input, data as the list of [inputs, label]
-        inputs, _ = data
-        inputs = inputs.to(device)
-
-        mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
-            model.forward(inputs)
-        loss, RE, KL = model.get_loss(
-            inputs, mean_dec, z, mean_enc, logvar_enc, beta=1.0
-        )
-
-        test_loss.append(loss.item())
-        test_re.append(RE.item())
-        test_kl.append(KL.item())
-
-    mean_loss = sum(test_loss) / len(test_loader)
-    mean_re = sum(test_re) / len(test_loader)
-    mean_kl = sum(test_kl) / len(test_loader)
-
-    print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")
