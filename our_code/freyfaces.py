@@ -6,6 +6,10 @@ import numpy as np
 import torch.optim as optim
 from VAE import VAE
 from eval_generate import generate
+import os
+
+if not os.path.exists('models'):
+    os.makedirs('models')
 
 config = {
     "prior": "standard",  # "vamp", # standard
@@ -17,6 +21,7 @@ config = {
     "input_type": "binary",
     "learning_rate": 0.0005,
     "epochs": 200,
+    "model_path": "./models/freyfaces"
 }
 
 def train(
@@ -61,7 +66,7 @@ def train(
             f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}"
         )
 
-        with open("snapshots/freyfaces", "wb") as f:
+        with open(config["model_path"], "wb") as f:
             torch.save(model, f)
 
 
@@ -104,6 +109,7 @@ device = torch.device(dev)
 
 # DOWNLOAD FROM HERE: http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat
 if __name__ == "__main__":
+
     path = "datasets/freyfaces/frey_rawface.mat"
 
     data = loadmat(path)
@@ -131,4 +137,4 @@ if __name__ == "__main__":
     )
 
     test(model, val_loader)
-    generate("./snapshots/freyfaces", False)
+    generate(config["model_path"], False)

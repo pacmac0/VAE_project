@@ -12,6 +12,9 @@ import torch.utils.data as data_utils
 from VAE import VAE
 from eval_generate import generate
 
+if not os.path.exists('models'):
+    os.makedirs('models')
+
 config = {
     "prior": "vamp",  # standard
     "pseudo_components": 500,
@@ -24,6 +27,7 @@ config = {
     "learning_rate": 0.0005,
     "epochs": 2000,
     "pseudo_from_data": True,
+    "model_path": "./models/mnist"
 }
 
 # use GPU
@@ -39,9 +43,6 @@ device = torch.device(dev)
 
 
 def load_static_mnist(args):
-    args["input_size"] = [1, 28, 28]
-    args["input_type"] = "binary"
-    # args["dynamic_binarization"] = False
     # load each file separate
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
@@ -220,4 +221,4 @@ if __name__ == "__main__":
     time_diff = end_time - start_time
     print("Training done, time elapsed: ", time_diff)
     testing(model, train_loader, test_loader)
-    generate("./snapshots/mnist_model")
+    generate(config["model_path"])
