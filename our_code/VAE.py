@@ -7,6 +7,7 @@ import time
 import os
 import torch.utils.data as data_utils
 from collections import OrderedDict 
+import math
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
@@ -104,6 +105,7 @@ class VAE(nn.Module):
         zh = self.decoder(z)
         return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, logvar_enc
 
+    """
     def get_log_prior(self, z):
         if self.args['prior'] == 'vamp':
             print("VAMP")
@@ -128,7 +130,36 @@ class VAE(nn.Module):
         else: # std gaussian
             print("STANDRARD")
             return log_Normal_standard(z, dim=1)
-        
+    """
+    def get_log_prior(self, z):
+        if self.args['prior'] == 'vamp':
+            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            pseudos = self.pseudos(gradient_start)
+            xh = self.encoder(pseudos)
+            # encoded pseudos
+            pseudo_means = self.z_mean(xh)
+            pseudo_logvars = self.z_logvar(xh)
+
+            # squeeze stuff to correct dims
+            # to match with the batch size for z
+            z = z.unsqueeze(1)
+            means = pseudo_means.unsqueeze(0)
+            logvars = pseudo_logvars.unsqueeze(0)
+
+            # sum togther variational posteriors, eq. (9)
+            a = log_Normal_diag(z, means, logvars, dim=2) - math.log(self.args['pseudo_components'])  # MB x C
+            a_max, _ = torch.max(a, 1)  # MB x 1
+
+            # calculte log-sum-exp
+            log_prior = a_max + torch.log(
+                torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)
+            )  # MB x 1
+            return log_prior
+        else: # std gaussian
+            print("STANDRARD")
+            return log_Normal_standard(z, dim=1)
+    
+
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
         print("---------------------")
