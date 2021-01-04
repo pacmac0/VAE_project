@@ -14,7 +14,6 @@ def training(
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     for epoch in range(1, max_epoch + 1):
-
         start_epoch_time = time.time()
         # Warm up
         # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
