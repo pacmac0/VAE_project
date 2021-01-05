@@ -5,16 +5,16 @@ from freyfaces import freyfaces
 import os
 import torch
 
-for p in ['snapshots/freyfaces', 'snapshots/mnist', "plots"]:
+for p in ["snapshots/freyfaces", "snapshots/mnist", "plots"]:
     if not os.path.exists(p):
         os.makedirs(p)
 
 if torch.cuda.is_available():
-    dev = 'cuda'
+    dev = "cuda"
     print("Using GPU Cuda")
 else:
-    dev = 'cpu'
-    torch.set_num_threads(8) # threading on cpu only
+    dev = "cpu"
+    torch.set_num_threads(8)  # threading on cpu only
     print("Using CPU")
 
 device = torch.device(dev)
@@ -36,8 +36,8 @@ mnist_config = {
     "learning_rate": 0.0005,
     "epochs": 5,
     "file_name_model": "./snapshots/mnist/final_mnist.model",
-    'pseudo_from_data': True,
-    "device": device
+    "pseudo_from_data": True,
+    "device": device,
 }
 
 
@@ -56,7 +56,7 @@ frey_config = {
     "epochs": 5,
     "file_name_model": "./snapshots/freyfaces/final_freyfaces.model",
     "pseudo_from_data": True,
-    "device": device
+    "device": device,
 }
 
 

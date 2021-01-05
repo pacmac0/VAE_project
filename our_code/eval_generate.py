@@ -4,16 +4,16 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+
 def generate(modelpath, shape, img_filename):
     if torch.cuda.is_available():
-        device = torch.device('gpu')
+        device = torch.device("gpu")
         with open(modelpath, "rb") as f:
             model = torch.load(f).to(device)
     else:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
         with open(modelpath, "rb") as f:
-            model = torch.load(f,map_location=torch.device('cpu')).to(device)
-
+            model = torch.load(f, map_location=torch.device("cpu")).to(device)
 
     samples = model.generate_samples()
     samples = samples.data.cpu().numpy()

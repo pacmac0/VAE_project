@@ -14,7 +14,9 @@ def freyfaces(config):
     train_data = loadmat(path)
     # static mnist shape: torch.Size([100, 784])
     train_data = train_data["ff"].T.reshape((-1, 28 * 20)).astype("float32") / 255.0
-    train_data = train_data[: int(len(train_data) / config["batch_size"]) * config["batch_size"]]
+    train_data = train_data[
+        : int(len(train_data) / config["batch_size"]) * config["batch_size"]
+    ]
     np.random.shuffle(train_data)
     ff_torch = torch.from_numpy(train_data)
 

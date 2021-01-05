@@ -408,7 +408,9 @@ def test(model, test_loader, config):
     with open("plots/{}".format(filename), "w+") as fp:
         json.dump(loss_values_per_batch, fp)
 
-    print(f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}")
+    print(
+        f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
+    )
 
 
 def add_pseudo_prior(config, train_data):
