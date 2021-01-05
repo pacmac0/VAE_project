@@ -48,7 +48,7 @@ class VAE(nn.Module):
         # TODO: play around with min max vals for hardtanh
         self.z_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, self.args["z1_size"], bias=True),
-            nn.Hardtanh(min_val=0, max_val=1),
+            nn.Hardtanh(min_val=-6, max_val=2),
         )
 
         # decoder p(x|z)
@@ -67,7 +67,7 @@ class VAE(nn.Module):
         # OBS: we're not using this for discrete data
         self.p_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, np.prod(self.args["input_size"]), bias=True),
-            nn.Hardtanh(min_val=0, max_val=1),
+            nn.Hardtanh(min_val=-4.5, max_val=0),
         )
 
         # initialise weights for linear layers, not activations
@@ -79,6 +79,7 @@ class VAE(nn.Module):
                     m.bias.data.fill_(0.01)
              
         # init a layer that will learn pseudos
+        # activation with hardtanh 0 to 1 to squeeze data to interval
         if self.args["prior"] == "vamp": 
             self.pseudos = nn.Sequential(OrderedDict([
                 ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["input_size"]), bias=False)),
@@ -92,6 +93,7 @@ class VAE(nn.Module):
                 self.pseudos.linear.weight.data = self.args['pseudo_mean']
             else: # just set them from arguments
                 self.pseudos.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
+                #torch.nn.init.xavier_uniform_(self.pseudos.linear.weight)
 
     # re-parameterization
     def sample_z(self, mean, logvar):
@@ -108,7 +110,6 @@ class VAE(nn.Module):
         zh = self.decoder(z)
         return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, logvar_enc
 
-    """
     def get_log_prior(self, z):
         if self.args['prior'] == 'vamp':
             pseudos = self.pseudos(self.gradient_start)
@@ -124,39 +125,18 @@ class VAE(nn.Module):
             logvars = pseudo_logvars.unsqueeze(0)
 
             # sum togther variational posteriors, eq. (9)
-            logs = log_Normal_diag(z, means, logvars, dim=1)
-            s = torch.sum(torch.exp(logs))
+            # using log-sum-exp trick to avoid underflow
+            # http://wittawat.com/posts/log-sum_exp_underflow.html
             K = self.args['pseudo_components']
-            return torch.log(s / K) # logged eq.(9)
-        else: # std gaussian
-            return log_Normal_standard(z, dim=1)
-    """
-    def get_log_prior(self, z):
-        if self.args['prior'] == 'vamp':
-            pseudos = self.pseudos(self.gradient_start)
-            xh = self.encoder(pseudos)
-            # encoded pseudos
-            pseudo_means = self.z_mean(xh)
-            pseudo_logvars = self.z_logvar(xh)
-
-            # squeeze stuff to correct dims
-            # to match with the batch size for z
-            z = z.unsqueeze(1)
-            means = pseudo_means.unsqueeze(0)
-            logvars = pseudo_logvars.unsqueeze(0)
-
-            # sum togther variational posteriors, eq. (9)
-            a = log_Normal_diag(z, means, logvars, dim=2) - math.log(self.args['pseudo_components'])  # MB x C
-            a_max, _ = torch.max(a, 1)  # MB x 1
+            a = log_Normal_diag(z, means, logvars, dim=2) - math.log(K)
+            b, _ = torch.max(a, 1) 
 
             # calculte log-sum-exp
-            log_prior = a_max + torch.log(
-                torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)
-            )  # MB x 1
+            log_prior = b + torch.log(
+                torch.sum(torch.exp(a - b.unsqueeze(1)), 1)) 
             return log_prior
         else: # std gaussian
             return log_Normal_standard(z, dim=1)
-    
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
@@ -167,10 +147,8 @@ class VAE(nn.Module):
         l = -re + beta * kl
         return torch.mean(l), torch.mean(re), torch.mean(kl)
 
-    def generate_x(self, N=25):
+    def generate_samples(self, N=25):
         if self.args['prior'] == 'vamp':
-            # a dummy one hot encoding identitiy matrix 
-            # where the backprop will stop
             # sample N learned pseudo-inputs
             pseudos = self.pseudos(self.gradient_start)[0:N]
             # put through encoder
