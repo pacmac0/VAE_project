@@ -297,7 +297,7 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
             torch.save(model, f)
         
     # store loss-values per epoch for plotting
-    filename = '{}_lossvalues_train.json'.format(model.args['prior'])
+    filename = '{}_{}_lossvalues_train.json'.format(model.args['dataset_name'], model.args['prior'])
     loss_values_per_epoch = {
         'model_name': filename,
         "train_loss": train_loss_per_epoch,
@@ -342,7 +342,7 @@ def testing(model, train_loader, test_loader):
     mean_kl = sum(test_kl) / len(test_loader)
 
     # store loss-values for plotting
-    filename = 'plots/{}_{}_lossvalues_test.json'.format(model.args['dataset_name'], model.args['prior'])
+    filename = '{}_{}_lossvalues_test.json'.format(model.args['dataset_name'], model.args['prior'])
     loss_values_per_batch = {
         'model_name': filename,
         "test_loss": test_loss,
