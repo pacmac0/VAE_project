@@ -11,7 +11,6 @@ for p in ['snapshots/freyfaces', 'snapshots/mnist']:
 mnist_config = {
     #"seed": 14,
     "dataset_name": "static_mnist",
-    #"model_name": "vae",
     "prior": "standard", # "vamp", "mog"
     "pseudo_components": 500,
     "warmup": 100,
@@ -26,7 +25,7 @@ mnist_config = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "max_epoch": 10,
+    "epochs": 10,
     "file_name_model": "./snapshots/mnist/final_mnist.model",
     'pseudo_from_data': True,
 }
@@ -43,10 +42,10 @@ frey_config = {
     "input_type": "binary",
     "learning_rate": 0.0005,
     "epochs": 100,
-    "model_path": "./snapshots/freyfaces/final_freyfaces.model"
+    "file_name_model": "./snapshots/freyfaces/final_freyfaces.model"
 }
 
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
-freyfaces(frey_config)
+# freyfaces(frey_config)
 
-# mnist(mnist_config)
+mnist(mnist_config)
