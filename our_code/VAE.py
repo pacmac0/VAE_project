@@ -244,7 +244,9 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
             torch.save(model, f)
         
     # store loss-values per epoch for plotting
+    filename = '{}_lossvalues_train.json'.format(model.args['prior'])
     loss_values_per_epoch = {
+        'model_name': filename,
         "train_loss": train_loss_per_epoch,
         "train_re": train_re_per_epoch,
         "train_kl": train_kl_per_epoch,
@@ -254,7 +256,9 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
         "learning_rate":model.args['learning_rate'],
         "hidden_components":model.args['z1_size'],
     }
-    with open('plots/lossvalues_train.json', 'w+') as fp:
+
+    
+    with open('plots/{}'.format(filename), 'w+') as fp:
         json.dump(loss_values_per_epoch, fp)
 
 def testing(model, train_loader, test_loader):
@@ -285,7 +289,9 @@ def testing(model, train_loader, test_loader):
     mean_kl = sum(test_kl) / len(test_loader)
 
     # store loss-values for plotting
+    filename = 'plots/{}_lossvalues_test.json'.format(model.args['prior'])
     loss_values_per_batch = {
+        'model_name': filename,
         "test_loss": test_loss,
         "test_re": test_re,
         "test_kl": test_kl,
@@ -295,7 +301,8 @@ def testing(model, train_loader, test_loader):
         "learning_rate":model.args['learning_rate'],
         "hidden_components":model.args['z1_size'],
     }
-    with open('plots/lossvalues_test.json', 'w+') as fp:
+    
+    with open('plots/{}'.format(filename), 'w+') as fp:
         json.dump(loss_values_per_batch, fp)
 
     print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")

@@ -16,7 +16,7 @@ def plot_train(path):
     plt.plot(json['train_re'], label='Train-RE')
     plt.plot(json['train_kl'], label='Train-KL')
     plt.legend(('Train-Loss', 'Train-RE', 'Train-KL'))
-    plt.savefig('plots/train_plot.png')
+    plt.savefig('plots/train_plot_{}.png'.format(json['model_name']))
     plt.show()
 
 def plot_test(path):
@@ -28,7 +28,7 @@ def plot_test(path):
     plt.plot(json['test_re'], label='Test-RE')
     plt.plot(json['test_kl'], label='Test-KL')
     plt.legend(('Test-Loss', 'Test-RE', 'Test-KL'))
-    plt.savefig('plots/test_plot.png')
+    plt.savefig('plots/test_plot_{}.png'.format(json['model_name']))
     plt.show()
 
 if __name__ == '__main__':

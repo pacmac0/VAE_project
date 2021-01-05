@@ -14,8 +14,8 @@ from VAE import VAE, training, testing
 config = {
     #"seed": 14,
     #"dataset_name": "static_mnist",
-    #"model_name": "vae",
-    "prior": "standard", # standard
+    "model_name": "vae",
+    "prior": "standard", # vamp
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
