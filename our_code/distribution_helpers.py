@@ -3,13 +3,13 @@ import torch
 min_epsilon = 1e-5
 max_epsilon = 1.0 - 1e-5
 
-
 def log_Normal_standard(x, dim=None):
     log_normal = -0.5 * torch.pow(x, 2)
     return torch.sum(log_normal, dim)
 
 
 def log_Normal_diag(x, mean, log_var, dim=None):
+    # print('x', x.size(), 'mean', mean.size(), 'log_var', log_var.size())
     log_normal = -0.5 * (log_var + torch.pow(x - mean, 2) / torch.exp(log_var))
     return torch.sum(log_normal, dim)
 

@@ -14,8 +14,8 @@ from VAE import VAE, training, testing
 config = {
     #"seed": 14,
     #"dataset_name": "static_mnist",
-    "model_name": "vae",
-    "prior": "standard", # vamp
+    #"model_name": "vae",
+    "prior": "standard", # "vamp", "mog"
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
@@ -26,8 +26,8 @@ config = {
     "input_type": "binary",
     #"dynamic_binarization": False,
     #"use_training_data_init": 1,
-    #"pseudoinputs_std": 0.01,
-    #"pseudoinputs_mean": 0.05,
+    "pseudoinputs_std": 0.01,
+    "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
     "max_epoch": 10,
     "file_name_model": "./snapshots/model.model",
@@ -85,7 +85,7 @@ def load_static_mnist(args):
 
     # get pseudo init params from random data
     # and add some randomness to it is not the exactly the same
-    if args['pseudo_from_data']:
+    if args['pseudo_from_data'] and args['prior'] == 'vamp':
         args['pseudo_std'] = 0.01
         np.random.shuffle(train_data)
         #print("DIM: {}".format(train_data.shape))

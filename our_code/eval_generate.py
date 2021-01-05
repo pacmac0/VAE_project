@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import torch.utils.data as data_utils
 
 if torch.cuda.is_available():
     device = torch.device('gpu')

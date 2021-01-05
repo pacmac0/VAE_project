@@ -71,6 +71,25 @@ class VAE(nn.Module):
             nn.Hardtanh(min_val=-4.5, max_val=0),
         )
 
+        # init a layer that will learn pseudos
+        if self.args["prior"] == "vamp": 
+            self.pseudos = nn.Sequential(
+                nn.Linear(self.args["pseudo_components"], 
+                    np.prod(self.args["input_size"]), bias=False),
+                nn.Hardtanh(min_val=0, max_val=1)
+                )
+
+        if self.args['prior'] == 'mog':
+            self.mog_means = nn.Sequential(
+                nn.Linear(self.args["pseudo_components"], 
+                    np.prod(self.args["input_size"]), bias=False),
+                nn.Hardtanh(min_val=0, max_val=1)
+                )
+            self.mog_logvar =  nn.Sequential(
+                nn.Linear(self.args["pseudo_components"], 
+                    np.prod(self.args["input_size"]), bias=False),
+                nn.Hardtanh(min_val=-6, max_val=2)
+                )
         # initialise weights for linear layers, not activations
         # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_training_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
@@ -96,6 +115,25 @@ class VAE(nn.Module):
                 self.pseudos.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
                 #torch.nn.init.xavier_uniform_(self.pseudos.linear.weight)
 
+        if self.args["prior"] == "mog": 
+            self.mog_means = nn.Sequential(OrderedDict([
+                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["z1_size"]), bias=False)),
+                ('activation', nn.Hardtanh(min_val=0, max_val=1))
+            ]))
+            self.mog_logvar = nn.Sequential(OrderedDict([
+                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["z1_size"]), bias=False)),
+                ('activation', nn.Hardtanh(min_val=0, max_val=1))
+            ]))
+            # an identity matrix that represents a one-hot encoding for
+            # the pseudo-inputs, where backprop stops.
+            self.gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            
+            # just set them from arguments
+            # self.mog_means.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
+            # self.mog_logvar.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
+            torch.nn.init.xavier_uniform_(self.mog_means.linear.weight)
+            torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
+    
     # re-parameterization
     def sample_z(self, mean, logvar):
         e = Variable(torch.randn(self.args["z1_size"])).to(device)
@@ -136,6 +174,18 @@ class VAE(nn.Module):
             log_prior = b + torch.log(
                 torch.sum(torch.exp(a - b.unsqueeze(1)), 1)) 
             return log_prior
+        elif self.args['prior'] == 'mog':
+            mean = self.mog_means(self.gradient_start)
+            logvar = self.mog_logvar(self.gradient_start)
+
+            z = z.unsqueeze(1)
+            mean = mean.unsqueeze(0)
+            logvar = mean.unsqueeze(0)
+
+            logs  = log_Normal_diag(z, mean, logvar, dim=1)
+            s = torch.sum(torch.exp(logs))
+            K = self.args['pseudo_components']
+            return torch.log(s / K)
         else: # std gaussian
             return log_Normal_standard(z, dim=1)
 
@@ -149,6 +199,7 @@ class VAE(nn.Module):
         return torch.mean(l), torch.mean(re), torch.mean(kl)
 
     def generate_samples(self, N=25):
+        print('prior', self.args['prior'])
         if self.args['prior'] == 'vamp':
             # sample N learned pseudo-inputs
             pseudos = self.pseudos(self.gradient_start)[0:N]
@@ -158,6 +209,10 @@ class VAE(nn.Module):
             ps_logvar_enc = self.z_logvar(ps_h)
             # re-param
             z_samples = self.sample_z(ps_mean_enc, ps_logvar_enc)
+        elif self.args['prior'] == 'mog':
+            mean = self.mog_means(self.gradient_start)[0:N]
+            logvar = self.mog_logvar(self.gradient_start)[0:N]            
+            z_samples = self.sample_z(mean, logvar)
         else: # standard prior
             # sample N latent points from std gaussian prior
             z_samples = Variable(torch.FloatTensor(N, self.args["z1_size"]).normal_()).to(device)
@@ -193,8 +248,6 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
 
         for i, data in enumerate(train_loader):
             optimizer.zero_grad()
-            # print("\nTraining batch #", i)
-
             # get input, data as the list of [inputs, label]
             inputs, _ = data
             inputs = inputs.to(device)
