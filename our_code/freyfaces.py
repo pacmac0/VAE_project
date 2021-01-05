@@ -6,20 +6,13 @@ import numpy as np
 import torch.optim as optim
 from VAE import VAE
 from eval_generate import generate
-import os
-
-for p in ['snapshots/freyfaces', 'snapshots/mnist']:
-    if not os.path.exists(p):
-        os.makedirs(p)
 
 
-def train(
-        model, train_loader, epochs, warmup_period, config, learning_rate=0.0005
-):
+def train(model, train_loader, config):
     model.train()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
-    for epoch in range(1, epochs + 1):
+    for epoch in range(1, config["epochs"] + 1):
         start_epoch_time = time.time()
 
         train_loss = []
@@ -85,7 +78,6 @@ def test(model, test_loader):
     print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")
 
 
-
 if torch.cuda.is_available():
     dev = "cuda"
     print("GPU")
@@ -118,10 +110,7 @@ def freyfaces(config):
     train(
         model,
         train_loader,
-        config["epochs"],
-        config["warmup"],
         config,
-        config["learning_rate"],
     )
 
     test(model, val_loader)

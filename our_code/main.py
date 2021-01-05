@@ -2,6 +2,11 @@
 
 from MNIST import mnist
 from freyfaces import freyfaces
+import os
+
+for p in ['snapshots/freyfaces', 'snapshots/mnist']:
+    if not os.path.exists(p):
+        os.makedirs(p)
 
 mnist_config = {
     #"seed": 14,
