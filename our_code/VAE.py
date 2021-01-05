@@ -8,6 +8,7 @@ import os
 import torch.utils.data as data_utils
 from collections import OrderedDict 
 import math
+import json
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
@@ -227,6 +228,9 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+    train_loss_per_epoch = []
+    train_re_per_epoch = []
+    train_kl_per_epoch = []
     for epoch in range(1, max_epoch+1):
         # Warm up
         # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
@@ -238,6 +242,7 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
         train_loss = []
         train_re = []
         train_kl = []
+        train_beta = []
 
         start_epoch_time = time.time()
 
@@ -272,6 +277,7 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
             train_loss.append(loss.item())
             train_re.append(RE.item())
             train_kl.append(KL.item())
+            train_beta.append(beta)
 
         epoch_loss = sum(train_loss) / len(train_loader)
         epoch_re = sum(train_re) / len(train_loader)
@@ -281,10 +287,28 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
         epoch_time_diff = end_epoch_time - start_epoch_time
 
         print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}")
+        # add values per batch to epoch
+        train_loss_per_epoch.append(epoch_loss)
+        train_re_per_epoch.append(epoch_re)
+        train_kl_per_epoch.append(epoch_kl)
 
         # save parameters
         with open(file_name, "wb") as f:
             torch.save(model, f)
+        
+    # store loss-values per epoch for plotting
+    loss_values_per_epoch = {
+        "train_loss": train_loss_per_epoch,
+        "train_re": train_re_per_epoch,
+        "train_kl": train_kl_per_epoch,
+        "number_epochs":model.args['max_epoch'],
+        "prior":model.args['prior'],
+        "pseudo_components":model.args['pseudo_components'],
+        "learning_rate":model.args['learning_rate'],
+        "hidden_components":model.args['z1_size'],
+    }
+    with open('plots/lossvalues_train.json', 'w+') as fp:
+        json.dump(loss_values_per_epoch, fp)
 
 def testing(model, train_loader, test_loader):
     test_loss = []
@@ -312,5 +336,19 @@ def testing(model, train_loader, test_loader):
     mean_loss = sum(test_loss) / len(test_loader)
     mean_re = sum(test_re) / len(test_loader)
     mean_kl = sum(test_kl) / len(test_loader)
+
+    # store loss-values for plotting
+    loss_values_per_batch = {
+        "test_loss": test_loss,
+        "test_re": test_re,
+        "test_kl": test_kl,
+        "number_epochs":model.args['max_epoch'],
+        "prior":model.args['prior'],
+        "pseudo_components":model.args['pseudo_components'],
+        "learning_rate":model.args['learning_rate'],
+        "hidden_components":model.args['z1_size'],
+    }
+    with open('plots/lossvalues_test.json', 'w+') as fp:
+        json.dump(loss_values_per_batch, fp)
 
     print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")

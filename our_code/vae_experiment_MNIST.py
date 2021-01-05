@@ -15,7 +15,7 @@ config = {
     #"seed": 14,
     #"dataset_name": "static_mnist",
     #"model_name": "vae",
-    "prior": "mog", # standard
+    "prior": "standard", # "vamp", "mog"
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
@@ -29,7 +29,7 @@ config = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "max_epoch": 2000,
+    "max_epoch": 10,
     "file_name_model": "./snapshots/model.model",
     'pseudo_from_data': True,
 }
@@ -91,9 +91,12 @@ def load_static_mnist(args):
         #print("DIM: {}".format(train_data.shape))
         dat = train_data[0 : int(args['pseudo_components']) ].T # make columns components(data-points)
         #print("DIM: {}".format(dat.shape))
+        # add some randomness to the pseudo inputs to avoid overfitting
         rand_std_norm = np.random.randn(np.prod(args['input_size']), args['pseudo_components'])
         args['pseudo_mean'] = torch.from_numpy(dat + args['pseudo_std'] * rand_std_norm).float()
-        
+    else:
+        args['pseudo_std'] = 0.01
+        args['pseudo_mean'] = 0.05
     return train_loader, eval_loader, test_loader, args
 
 # usage from main: plot_tensor(inputs[0])
