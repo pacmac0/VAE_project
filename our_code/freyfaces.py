@@ -22,7 +22,9 @@ def freyfaces(config):
     train_loader = torch.utils.data.DataLoader(
         ff_torch[:train_size], config["batch_size"], shuffle=True
     )
-    val_loader = torch.utils.data.DataLoader(ff_torch[train_size:], config["batch_size"], shuffle=True)
+    val_loader = torch.utils.data.DataLoader(
+        ff_torch[train_size:], config["batch_size"], shuffle=True
+    )
 
     model = VAE(config)
     model.to(config["device"])
