@@ -101,9 +101,6 @@ def mnist(config):
     print("Starting train")
     start_time = time.time()
 
-    max_epoch = config["epochs"]
-    warmup = config["warmup"]
-    learning_rate = config["learning_rate"]
     train(
         model,
         train_loader,
@@ -111,7 +108,7 @@ def mnist(config):
     )
     end_time = time.time()
     time_diff = end_time - start_time
-    print("--> Training done, time elapsed: ", time_diff)
-    print("--> Testing on test data")
+    print("Training done, time elapsed: ", time_diff)
+    print("Testing on test data")
     test(model, test_loader, config)
     generate(config["file_name_model"], config["input_size"])

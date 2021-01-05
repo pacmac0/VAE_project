@@ -274,10 +274,10 @@ class VAE(nn.Module):
         return x_mean
 
 
-def train(model, train_loader, config, learning_rate=0.0005):
+def train(model, train_loader, config):
     torch.autograd.set_detect_anomaly(True)
     model.train()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
     train_loss_per_epoch = []
     train_re_per_epoch = []
@@ -315,10 +315,6 @@ def train(model, train_loader, config, learning_rate=0.0005):
 
             # backpropagate
             loss.backward()
-
-            if i == len(train_loader) / 2:
-                print("loss", loss.item(), "RE", RE.item(), "KL", KL.item())
-
             optimizer.step()
 
             # collect epoch statistics
@@ -335,7 +331,7 @@ def train(model, train_loader, config, learning_rate=0.0005):
         epoch_time_diff = end_epoch_time - start_epoch_time
 
         print(
-            f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}"
+            f"Epoch: {epoch}; loss: {epoch_loss:.3f}, RE: {epoch_re:.3f}, KL: {epoch_kl:.3f}, time elapsed: {epoch_time_diff:.3f}"
         )
         # add values per batch to epoch
         train_loss_per_epoch.append(epoch_loss)
