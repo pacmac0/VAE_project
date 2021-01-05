@@ -87,7 +87,7 @@ class VAE(nn.Module):
                 nn.Hardtanh(min_val=-6, max_val=2)
                 )
         # initialise weights for linear layers, not activations
-        # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_training_deep_feedforward_neural_networks [12], eq. (16).
+        # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_train_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
             if type(m) == nn.Linear:
                 torch.nn.init.xavier_uniform_(m.weight)
@@ -219,7 +219,7 @@ class VAE(nn.Module):
         return x_mean
 
 
-def training(model, train_loader, config,
+def train(model, train_loader, config,
         learning_rate=0.0005):
     torch.autograd.set_detect_anomaly(True)
     model.train()
@@ -314,7 +314,7 @@ def training(model, train_loader, config,
         json.dump(loss_values_per_epoch, fp)
 
 
-def testing(model, test_loader, config):
+def test(model, test_loader, config):
     test_loss = []
     test_re = []
     test_kl = []

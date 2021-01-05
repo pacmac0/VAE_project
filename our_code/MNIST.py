@@ -10,7 +10,7 @@ import time
 import json
 
 import torch.utils.data as data_utils
-from VAE import VAE, training, testing
+from VAE import VAE, train, test
 from eval_generate import generate
 
 
@@ -78,13 +78,13 @@ def mnist(config):
     model = VAE(config)
     model.to(config["device"])
 
-    print("Starting training")
+    print("Starting train")
     start_time = time.time()
 
     max_epoch = config["epochs"]
     warmup = config["warmup"]
     learning_rate = config["learning_rate"]
-    training(
+    train(
         model,
         train_loader, 
         config,
@@ -93,7 +93,7 @@ def mnist(config):
     time_diff = end_time - start_time
     print("--> Training done, time elapsed: ", time_diff)
     print("--> Testing on test data")
-    testing(
+    test(
         model,
         test_loader,
         config

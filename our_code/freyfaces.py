@@ -4,7 +4,7 @@ import time
 import torch
 import numpy as np
 import torch.optim as optim
-from VAE import VAE, training, testing
+from VAE import VAE, train, test
 from eval_generate import generate
 
 
@@ -27,11 +27,11 @@ def freyfaces(config):
     model = VAE(config)
     model.to(config["device"])
 
-    training(
+    train(
         model,
         train_loader,
         config,
     )
 
-    testing(model, val_loader, config)
+    test(model, val_loader, config)
     generate(config["file_name_model"], config["input_size"])
