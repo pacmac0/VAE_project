@@ -96,7 +96,6 @@ else:
 
 device = torch.device(dev)
 
-# DOWNLOAD FROM HERE: http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat
 def freyfaces(config):
     path = "datasets/freyfaces/frey_rawface.mat"
 

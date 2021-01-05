@@ -41,5 +41,7 @@ frey_config = {
     "model_path": "./snapshots/freyfaces/final_freyfaces.model"
 }
 
+# download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 freyfaces(frey_config)
+
 # mnist(mnist_config)
