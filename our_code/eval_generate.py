@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import torch.utils.data as data_utils
 
 if torch.cuda.is_available():
     device = torch.device('gpu')
@@ -15,7 +14,7 @@ else:
         model = torch.load(f,map_location=torch.device('cpu')).to(device)
 
 
-samples = model.generate_x()
+samples = model.generate_samples()
 samples = samples.data.cpu().numpy()
 
 fig = plt.figure(figsize=(5, 5))
