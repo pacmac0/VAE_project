@@ -2,7 +2,6 @@
 from scipy.io import loadmat
 import torch
 import numpy as np
-import torch.optim as optim
 from VAE import VAE, train, test, add_pseudo_prior
 from eval_generate import generate
 

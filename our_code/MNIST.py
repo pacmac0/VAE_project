@@ -1,9 +1,6 @@
 import torch
-import torch.optim as optim
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-import torch.nn as nn
 import time
 
 import torch.utils.data as data_utils

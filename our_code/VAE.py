@@ -4,14 +4,12 @@ import numpy as np
 from torch.autograd import Variable
 import torch.optim as optim
 import time
-import torch.utils.data as data_utils
 from collections import OrderedDict
 import math
 import json
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
-    log_Logistic_256,
     log_Bernoulli,
 )
 
