@@ -4,7 +4,6 @@ import numpy as np
 from torch.autograd import Variable
 import torch.optim as optim
 import time
-import os
 import torch.utils.data as data_utils
 from collections import OrderedDict
 import math

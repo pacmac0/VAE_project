@@ -1,5 +1,3 @@
-import datetime
-import os.path as osp
 import torch
 import torch.optim as optim
 import os
@@ -7,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import time
-import json
 
 import torch.utils.data as data_utils
 from VAE import VAE, train, test, add_pseudo_prior
@@ -75,7 +72,7 @@ def mnist(config):
     train_loader, eval_loader, test_loader = load_static_mnist(config)
 
     # If a snapshot exist in /snapshots then use trained weights
-    file_name = config["file_name_model"]
+    config["file_name_model"]
     model = VAE(config)
     model.to(config["device"])
 

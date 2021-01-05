@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from scipy.io import loadmat
-import time
 import torch
 import numpy as np
 import torch.optim as optim
