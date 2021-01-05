@@ -30,9 +30,9 @@ class GatedDense(nn.Module):
 
 
 class VAE(nn.Module):
-    def __init__(self, args):
+    def __init__(self, config):
         super(VAE, self).__init__()
-        self.config = args
+        self.config = config
         self.n_hidden = 300
 
         # encoder q(z|x)
@@ -130,7 +130,7 @@ class VAE(nn.Module):
                 requires_grad=False,
             ).to(config["device"])
             # init pseudo layer
-            if args["pseudo_from_data"]:
+            if config["pseudo_from_data"]:
                 self.pseudos.linear.weight.data = self.config["pseudo_mean"]
             else:  # just set them from arguments
                 self.pseudos.linear.weight.data.normal_(
