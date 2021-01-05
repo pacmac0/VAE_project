@@ -7,32 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import time
+import json
 
 import torch.utils.data as data_utils
-from VAE import VAE, training, testing
+from VAE import VAE
+from eval_generate import generate
 
-config = {
-    #"seed": 14,
-    "dataset_name": "static_mnist",
-    #"model_name": "vae",
-    "prior": "standard", # "vamp", "mog"
-    "pseudo_components": 500,
-    "warmup": 100,
-    "z1_size": 40,
-    #"z2_size": 40,
-    "batch_size": 100,
-    "test_batch_size": 100,
-    "input_size": [1, 28, 28],
-    "input_type": "binary",
-    #"dynamic_binarization": False,
-    #"use_training_data_init": 1,
-    "pseudoinputs_std": 0.01,
-    "pseudoinputs_mean": 0.05,
-    "learning_rate": 0.0005,
-    "max_epoch": 10,
-    "file_name_model": "./snapshots/model.model",
-    'pseudo_from_data': True,
-}
 
 # use GPU
 if torch.cuda.is_available():
@@ -45,10 +25,7 @@ else:
 
 device = torch.device(dev) 
 
-def load_static_mnist(args):
-    args["input_size"] = [1, 28, 28]
-    args["input_type"] = "binary"
-    #args["dynamic_binarization"] = False
+def load_static_mnist(config):
     # load each file separate
     with open(
         os.path.join("datasets", "MNIST_static", "binarized_mnist_train.amat")
@@ -73,72 +50,196 @@ def load_static_mnist(args):
     # pytorch data loader to create tensors
     train_loader = data_utils.DataLoader(
         data_utils.TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_labels)), 
-        batch_size=args["batch_size"], shuffle=True)
+        batch_size=config["batch_size"], shuffle=True)
 
     eval_loader = data_utils.DataLoader(
         data_utils.TensorDataset(torch.from_numpy(evaluation_data), torch.from_numpy(evaluation_labels)), 
-        batch_size=args["test_batch_size"], shuffle=False)
+        batch_size=config["test_batch_size"], shuffle=False)
 
     test_loader = data_utils.DataLoader(
         data_utils.TensorDataset(torch.from_numpy(test_data), torch.from_numpy(test_labels)), 
-        batch_size=args["test_batch_size"], shuffle=True)
+        batch_size=config["test_batch_size"], shuffle=True)
 
     # get pseudo init params from random data
     # and add some randomness to it is not the exactly the same
-    if args['pseudo_from_data'] and args['prior'] == 'vamp':
-        args['pseudo_std'] = 0.01
+    if config['pseudo_from_data'] and config['prior'] == 'vamp':
+        config['pseudo_std'] = 0.01
         np.random.shuffle(train_data)
         #print("DIM: {}".format(train_data.shape))
-        dat = train_data[0 : int(args['pseudo_components']) ].T # make columns components(data-points)
+        dat = train_data[0 : int(config['pseudo_components']) ].T # make columns components(data-points)
         #print("DIM: {}".format(dat.shape))
         # add some randomness to the pseudo inputs to avoid overfitting
-        rand_std_norm = np.random.randn(np.prod(args['input_size']), args['pseudo_components'])
-        args['pseudo_mean'] = torch.from_numpy(dat + args['pseudo_std'] * rand_std_norm).float()
+        rand_std_norm = np.random.randn(np.prod(config['input_size']), config['pseudo_components'])
+        config['pseudo_mean'] = torch.from_numpy(dat + config['pseudo_std'] * rand_std_norm).float()
     else:
-        args['pseudo_std'] = 0.01
-        args['pseudo_mean'] = 0.05
-    return train_loader, eval_loader, test_loader, args
-
-# usage from main: plot_tensor(inputs[0])
-def plot_tensor(tensor):
-    nparr = tensor.numpy()
-    img = np.reshape(nparr, (28, 28))
-    plt.figure()
-    plt.imshow(img)
-    plt.show()
+        config['pseudo_std'] = 0.01
+        config['pseudo_mean'] = 0.05
+    return train_loader, eval_loader, test_loader
 
 
-def main(args):
+def training(model, train_loader, max_epoch, warmup_period, file_name, config,
+        learning_rate=0.0005):
+    torch.autograd.set_detect_anomaly(True)
+    model.train()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    train_loss_per_epoch = []
+    train_re_per_epoch = []
+    train_kl_per_epoch = []
+    for epoch in range(1, max_epoch+1):
+        # Warm up
+        # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
+        beta = 1.0 * epoch / warmup_period
+        if beta > 1.0:
+            beta = 1.0
+        print(f"--> beta: {beta}")
+
+        train_loss = []
+        train_re = []
+        train_kl = []
+        train_beta = []
+
+        start_epoch_time = time.time()
+
+        for i, data in enumerate(train_loader):
+            optimizer.zero_grad()
+            # get input, data as the list of [inputs, label]
+            inputs, _ = data
+            inputs = inputs.to(device)
+
+            # forward
+            mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
+                model.forward(inputs)
+
+            # calculate loss
+            loss, RE, KL = model.get_loss(
+                inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta
+            )
+
+            # backpropagate
+            loss.backward()
+
+            if i == len(train_loader) / 2:
+                print(
+                    "loss", loss.item(),
+                    "RE", RE.item(),
+                    "KL", KL.item()
+                )
+
+            optimizer.step()
+
+            # collect epoch statistics
+            train_loss.append(loss.item())
+            train_re.append(RE.item())
+            train_kl.append(KL.item())
+            train_beta.append(beta)
+
+        epoch_loss = sum(train_loss) / len(train_loader)
+        epoch_re = sum(train_re) / len(train_loader)
+        epoch_kl = sum(train_kl) / len(train_loader)
+
+        end_epoch_time = time.time()
+        epoch_time_diff = end_epoch_time - start_epoch_time
+
+        print(f"Epoch: {epoch}; loss: {epoch_loss}, RE: {epoch_re}, KL: {epoch_kl}, time elapsed: {epoch_time_diff}")
+        # add values per batch to epoch
+        train_loss_per_epoch.append(epoch_loss)
+        train_re_per_epoch.append(epoch_re)
+        train_kl_per_epoch.append(epoch_kl)
+
+        # save parameters
+        with open(file_name, "wb") as f:
+            torch.save(model, f)
+
+    # store loss-values per epoch for plotting
+    filename = '{}_{}_lossvalues_train.json'.format(config['dataset_name'], config['prior'])
+    loss_values_per_epoch = {
+        'model_name': filename,
+        "train_loss": train_loss_per_epoch,
+        "train_re": train_re_per_epoch,
+        "train_kl": train_kl_per_epoch,
+        "number_epochs":config['max_epoch'],
+        "prior":config['prior'],
+        "pseudo_components":config['pseudo_components'],
+        "learning_rate":config['learning_rate'],
+        "hidden_components":config['z1_size'],
+    }
+
+
+    with open('plots/{}'.format(filename), 'w+') as fp:
+        json.dump(loss_values_per_epoch, fp)
+
+
+def testing(model, train_loader, test_loader, config):
+    test_loss = []
+    test_re = []
+    test_kl = []
+
+    # evaulation mode
+    model.eval()
+
+    for i, data in enumerate(test_loader):
+        # get input, data as the list of [inputs, label]
+        inputs, _ = data
+        inputs = inputs.to(device)
+
+        mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
+            model.forward(inputs)
+        loss, RE, KL = model.get_loss(
+            inputs, mean_dec, z, mean_enc, logvar_enc, beta=1.0
+        )
+
+        test_loss.append(loss.item())
+        test_re.append(RE.item())
+        test_kl.append(KL.item())
+
+    mean_loss = sum(test_loss) / len(test_loader)
+    mean_re = sum(test_re) / len(test_loader)
+    mean_kl = sum(test_kl) / len(test_loader)
+
+    # store loss-values for plotting
+    filename = '{}_{}_lossvalues_test.json'.format(config['dataset_name'], config['prior'])
+    loss_values_per_batch = {
+        'model_name': filename,
+        "test_loss": test_loss,
+        "test_re": test_re,
+        "test_kl": test_kl,
+        "number_epochs":config['max_epoch'],
+        "prior":config['prior'],
+        "pseudo_components":config['pseudo_components'],
+        "learning_rate":config['learning_rate'],
+        "hidden_components":config['z1_size'],
+    }
+
+    with open('plots/{}'.format(filename), 'w+') as fp:
+        json.dump(loss_values_per_batch, fp)
+
+    print(f"Test results: loss avg: {mean_loss}, RE avg: {mean_re}, KL: {mean_kl}")
+
+
+def mnist(config):
     torch.manual_seed(14)
-    print(args)
 
-    # TODO: refactor load_static_mnist
-    print("--> Loading data... ")
-    train_loader, eval_loader, test_loader, args = load_static_mnist(args)
+    train_loader, eval_loader, test_loader = load_static_mnist(config)
 
     # If a snapshot exist in /snapshots then use trained weights
-    file_name = args["file_name_model"]
-    if osp.exists(file_name):
-        with open(file_name, "rb") as f:
-            model = torch.load(f)
-        print("--> Loaded from pretrained model")
-    else:  # Otherwise create and intialize a new model
-        model = VAE(args)
-        print("--> Initialized new model")
+    file_name = config["file_name_model"]
+    model = VAE(config)
     model.to(device)
 
-    print("--> Starting training")
+    print("Starting training")
     start_time = time.time()
 
-    max_epoch = args["max_epoch"]
-    warmup = args["warmup"]
-    learning_rate = args["learning_rate"]
+    max_epoch = config["max_epoch"]
+    warmup = config["warmup"]
+    learning_rate = config["learning_rate"]
     training(
         model,
         train_loader, 
         max_epoch, 
         warmup, 
-        file_name, 
+        file_name,
+        config,
         learning_rate
     )
     end_time = time.time()
@@ -148,9 +249,11 @@ def main(args):
     testing(
         model,
         train_loader, 
-        test_loader
+        test_loader,
+        config
     )
-    print("--> Finito")
-    
+    generate(config["file_name_model"], config["input_size"])
+
+
 if __name__ == "__main__":
-    main(config)
+    mnist(config)
