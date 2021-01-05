@@ -14,16 +14,6 @@ from VAE import VAE, training, testing
 from eval_generate import generate
 
 
-# use GPU
-if torch.cuda.is_available():
-    dev = 'cuda'
-    print("--> Using GPU Cuda")
-else:
-    dev = 'cpu'
-    torch.set_num_threads(8) # threading on cpu only
-    print("--> Using CPU")
-
-device = torch.device(dev) 
 
 def load_static_mnist(config):
     # load each file separate
@@ -78,7 +68,6 @@ def load_static_mnist(config):
 
 
 
-
 def mnist(config):
     torch.manual_seed(14)
 
@@ -87,7 +76,7 @@ def mnist(config):
     # If a snapshot exist in /snapshots then use trained weights
     file_name = config["file_name_model"]
     model = VAE(config)
-    model.to(device)
+    model.to(config["device"])
 
     print("Starting training")
     start_time = time.time()
@@ -111,7 +100,3 @@ def mnist(config):
     )
     generate(config["file_name_model"], config["input_size"])
 
-
-if __name__ == "__main__":
-
-    mnist(config)

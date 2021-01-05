@@ -8,16 +8,6 @@ from VAE import VAE, training, testing
 from eval_generate import generate
 
 
-if torch.cuda.is_available():
-    dev = "cuda"
-    print("GPU")
-else:
-    dev = "cpu"
-    torch.set_num_threads(8)  # threading on cpu only
-    print("CPU")
-
-device = torch.device(dev)
-
 def freyfaces(config):
     path = "datasets/freyfaces/frey_rawface.mat"
 
@@ -35,7 +25,7 @@ def freyfaces(config):
     val_loader = torch.utils.data.DataLoader(ff_torch[train_size:], config["batch_size"], shuffle=True)
 
     model = VAE(config)
-    model.to(device)
+    model.to(config["device"])
 
     training(
         model,

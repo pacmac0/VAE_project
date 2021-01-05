@@ -16,10 +16,6 @@ from distribution_helpers import (
     log_Bernoulli,
 )
 
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-else:
-    device = torch.device('cpu')
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
@@ -36,58 +32,58 @@ class GatedDense(nn.Module):
 class VAE(nn.Module):
     def __init__(self, args):
         super(VAE, self).__init__()
-        self.args = args
+        self.config = args
         self.n_hidden = 300
 
         # encoder q(z|x)
         self.encoder = nn.Sequential(
-            GatedDense(np.prod(self.args["input_size"]), self.n_hidden),
+            GatedDense(np.prod(self.config["input_size"]), self.n_hidden),
             GatedDense(self.n_hidden, self.n_hidden),
         )
-        self.z_mean = nn.Linear(self.n_hidden, self.args["z1_size"])
+        self.z_mean = nn.Linear(self.n_hidden, self.config["z1_size"])
 
         # TODO: play around with min max vals for hardtanh
         self.z_logvar = nn.Sequential(
-            nn.Linear(self.n_hidden, self.args["z1_size"], bias=True),
+            nn.Linear(self.n_hidden, self.config["z1_size"], bias=True),
             nn.Hardtanh(min_val=-6, max_val=2),
         )
 
         # decoder p(x|z)
         self.decoder = nn.Sequential(
-            GatedDense(self.args["z1_size"], self.n_hidden),
+            GatedDense(self.config["z1_size"], self.n_hidden),
             GatedDense(self.n_hidden, self.n_hidden),
         )
 
         # the mean needs to be a probability since mnist binary data
         # gives bernoulli, so use sigmoid activation instead
         self.p_mean = nn.Sequential(
-            nn.Linear(self.n_hidden, np.prod(self.args["input_size"]), bias=True),
+            nn.Linear(self.n_hidden, np.prod(self.config["input_size"]), bias=True),
             nn.Sigmoid(),
         )
 
         # OBS: we're not using this for discrete data
         self.p_logvar = nn.Sequential(
-            nn.Linear(self.n_hidden, np.prod(self.args["input_size"]), bias=True),
+            nn.Linear(self.n_hidden, np.prod(self.config["input_size"]), bias=True),
             nn.Hardtanh(min_val=-4.5, max_val=0),
         )
 
         # init a layer that will learn pseudos
-        if self.args["prior"] == "vamp": 
+        if self.config["prior"] == "vamp":
             self.pseudos = nn.Sequential(
-                nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"]), bias=False),
+                nn.Linear(self.config["pseudo_components"],
+                    np.prod(self.config["input_size"]), bias=False),
                 nn.Hardtanh(min_val=0, max_val=1)
                 )
 
-        if self.args['prior'] == 'mog':
+        if self.config['prior'] == 'mog':
             self.mog_means = nn.Sequential(
-                nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"]), bias=False),
+                nn.Linear(self.config["pseudo_components"],
+                    np.prod(self.config["input_size"]), bias=False),
                 nn.Hardtanh(min_val=0, max_val=1)
                 )
             self.mog_logvar =  nn.Sequential(
-                nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"]), bias=False),
+                nn.Linear(self.config["pseudo_components"],
+                    np.prod(self.config["input_size"]), bias=False),
                 nn.Hardtanh(min_val=-6, max_val=2)
                 )
         # initialise weights for linear layers, not activations
@@ -100,43 +96,43 @@ class VAE(nn.Module):
              
         # init a layer that will learn pseudos
         # activation with hardtanh 0 to 1 to squeeze data to interval
-        if self.args["prior"] == "vamp": 
+        if self.config["prior"] == "vamp":
             self.pseudos = nn.Sequential(OrderedDict([
-                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["input_size"]), bias=False)),
+                ('linear', nn.Linear(self.config["pseudo_components"],np.prod(self.config["input_size"]), bias=False)),
                 ('activation', nn.Hardtanh(min_val=0, max_val=1))
             ]))
             # an identity matrix that represents a one-hot encoding for
-            # the pseudo-inputs, where backprop stops.
-            self.gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            # the pseudo-data, where backprop stops.
+            self.gradient_start = Variable(torch.eye(self.config["pseudo_components"], self.config["pseudo_components"]), requires_grad=False).to(config["device"])
             # init pseudo layer
             if args['pseudo_from_data']:
-                self.pseudos.linear.weight.data = self.args['pseudo_mean']
+                self.pseudos.linear.weight.data = self.config['pseudo_mean']
             else: # just set them from arguments
-                self.pseudos.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
+                self.pseudos.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
                 #torch.nn.init.xavier_uniform_(self.pseudos.linear.weight)
 
-        if self.args["prior"] == "mog": 
+        if self.config["prior"] == "mog":
             self.mog_means = nn.Sequential(OrderedDict([
-                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["z1_size"]), bias=False)),
+                ('linear', nn.Linear(self.config["pseudo_components"],np.prod(self.config["z1_size"]), bias=False)),
                 ('activation', nn.Hardtanh(min_val=0, max_val=1))
             ]))
             self.mog_logvar = nn.Sequential(OrderedDict([
-                ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["z1_size"]), bias=False)),
+                ('linear', nn.Linear(self.config["pseudo_components"],np.prod(self.config["z1_size"]), bias=False)),
                 ('activation', nn.Hardtanh(min_val=0, max_val=1))
             ]))
             # an identity matrix that represents a one-hot encoding for
-            # the pseudo-inputs, where backprop stops.
-            self.gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            # the pseudo-data, where backprop stops.
+            self.gradient_start = Variable(torch.eye(self.config["pseudo_components"], self.config["pseudo_components"]), requires_grad=False).to(config["device"])
             
             # just set them from arguments
-            # self.mog_means.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
-            # self.mog_logvar.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
+            # self.mog_means.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
+            # self.mog_logvar.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
             torch.nn.init.xavier_uniform_(self.mog_means.linear.weight)
             torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
     
     # re-parameterization
     def sample_z(self, mean, logvar):
-        e = Variable(torch.randn(self.args["z1_size"])).to(device)
+        e = Variable(torch.randn(self.config["z1_size"])).to(self.config["device"])
         stddev = torch.exp(logvar / 2)
         return mean + stddev * e
 
@@ -150,7 +146,7 @@ class VAE(nn.Module):
         return self.p_mean(zh), self.p_logvar(zh), z, mean_enc, logvar_enc
 
     def get_log_prior(self, z):
-        if self.args['prior'] == 'vamp':
+        if self.config['prior'] == 'vamp':
             pseudos = self.pseudos(self.gradient_start)
             xh = self.encoder(pseudos)
             # encoded pseudos
@@ -166,7 +162,7 @@ class VAE(nn.Module):
             # sum togther variational posteriors, eq. (9)
             # using log-sum-exp trick to avoid underflow
             # http://wittawat.com/posts/log-sum_exp_underflow.html
-            K = self.args['pseudo_components']
+            K = self.config['pseudo_components']
             a = log_Normal_diag(z, means, logvars, dim=2) - math.log(K)
             b, _ = torch.max(a, 1) 
 
@@ -174,7 +170,7 @@ class VAE(nn.Module):
             log_prior = b + torch.log(
                 torch.sum(torch.exp(a - b.unsqueeze(1)), 1)) 
             return log_prior
-        elif self.args['prior'] == 'mog':
+        elif self.config['prior'] == 'mog':
             mean = self.mog_means(self.gradient_start)
             logvar = self.mog_logvar(self.gradient_start)
 
@@ -184,7 +180,7 @@ class VAE(nn.Module):
 
             logs  = log_Normal_diag(z, mean, logvar, dim=1)
             s = torch.sum(torch.exp(logs))
-            K = self.args['pseudo_components']
+            K = self.config['pseudo_components']
             return torch.log(s / K)
         else: # std gaussian
             return log_Normal_standard(z, dim=1)
@@ -199,9 +195,9 @@ class VAE(nn.Module):
         return torch.mean(l), torch.mean(re), torch.mean(kl)
 
     def generate_samples(self, N=25):
-        print('prior', self.args['prior'])
-        if self.args['prior'] == 'vamp':
-            # sample N learned pseudo-inputs
+        print('prior', self.config['prior'])
+        if self.config['prior'] == 'vamp':
+            # sample N learned pseudo-data
             pseudos = self.pseudos(self.gradient_start)[0:N]
             # put through encoder
             ps_h = self.encoder(pseudos)
@@ -209,13 +205,13 @@ class VAE(nn.Module):
             ps_logvar_enc = self.z_logvar(ps_h)
             # re-param
             z_samples = self.sample_z(ps_mean_enc, ps_logvar_enc)
-        elif self.args['prior'] == 'mog':
+        elif self.config['prior'] == 'mog':
             mean = self.mog_means(self.gradient_start)[0:N]
             logvar = self.mog_logvar(self.gradient_start)[0:N]            
             z_samples = self.sample_z(mean, logvar)
         else: # standard prior
             # sample N latent points from std gaussian prior
-            z_samples = Variable(torch.FloatTensor(N, self.args["z1_size"]).normal_()).to(device)
+            z_samples = Variable(torch.FloatTensor(N, self.config["z1_size"]).normal_()).to(self.config["device"])
 
         # decode and use means sample data
         z = self.decoder(z_samples)
@@ -238,7 +234,7 @@ def training(model, train_loader, config,
         beta = 1.0 * epoch / config["warmup"]
         if beta > 1.0:
             beta = 1.0
-        print(f"--> beta: {beta}")
+        print(f"beta: {beta}")
 
         train_loss = []
         train_re = []
@@ -249,22 +245,19 @@ def training(model, train_loader, config,
 
         for i, data in enumerate(train_loader):
             optimizer.zero_grad()
-            # get input, data as the list of [inputs, label]
+            # get input, data as the list of [data, label]
 
-            inputs = None
             if config["dataset_name"] == "static_mnist":
-                inputs, _ = data
-            else:
-                inputs = data
-            inputs = inputs.to(device)
+                data, _ = data
+            data = data.to(config["device"])
 
             # forward
             mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
-                model.forward(inputs)
+                model.forward(data)
 
             # calculate loss
             loss, RE, KL = model.get_loss(
-                inputs, mean_dec, z, mean_enc, logvar_enc, beta=beta
+                data, mean_dec, z, mean_enc, logvar_enc, beta=beta
             )
 
             # backpropagate
@@ -330,17 +323,17 @@ def testing(model, test_loader, config):
     model.eval()
 
     for i, data in enumerate(test_loader):
-        # get input, data as the list of [inputs, label]
+        # get input, data as the list of [data, label]
         if config["dataset_name"] == "static_mnist":
-            inputs, _ = data
+            data, _ = data
         else:
-            inputs = data
-        inputs = inputs.to(device)
+            data = data
+        data = data.to(config["device"])
 
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = \
-            model.forward(inputs)
+            model.forward(data)
         loss, RE, KL = model.get_loss(
-            inputs, mean_dec, z, mean_enc, logvar_enc, beta=1.0
+            data, mean_dec, z, mean_enc, logvar_enc, beta=1.0
         )
 
         test_loss.append(loss.item())
