@@ -84,8 +84,11 @@ class VAE(nn.Module):
                 ('linear', nn.Linear(self.args["pseudo_components"],np.prod(self.args["input_size"]), bias=False)),
                 ('activation', nn.Hardtanh(min_val=0, max_val=1))
             ]))
+            # an identity matrix that represents a one-hot encoding for
+            # the pseudo-inputs, where backprop stops.
+            self.gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
             # init pseudo layer
-            if args['pseudo_from_data'] == True:
+            if args['pseudo_from_data']:
                 self.pseudos.linear.weight.data = self.args['pseudo_mean']
             else: # just set them from arguments
                 self.pseudos.linear.weight.data.normal_(self.args['pseudo_mean'], self.args['pseudo_std'])
@@ -108,9 +111,7 @@ class VAE(nn.Module):
     """
     def get_log_prior(self, z):
         if self.args['prior'] == 'vamp':
-            print("VAMP")
-            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
-            pseudos = self.pseudos(gradient_start)
+            pseudos = self.pseudos(self.gradient_start)
             xh = self.encoder(pseudos)
             # encoded pseudos
             pseudo_means = self.z_mean(xh)
@@ -128,13 +129,11 @@ class VAE(nn.Module):
             K = self.args['pseudo_components']
             return torch.log(s / K) # logged eq.(9)
         else: # std gaussian
-            print("STANDRARD")
             return log_Normal_standard(z, dim=1)
     """
     def get_log_prior(self, z):
         if self.args['prior'] == 'vamp':
-            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
-            pseudos = self.pseudos(gradient_start)
+            pseudos = self.pseudos(self.gradient_start)
             xh = self.encoder(pseudos)
             # encoded pseudos
             pseudo_means = self.z_mean(xh)
@@ -156,18 +155,12 @@ class VAE(nn.Module):
             )  # MB x 1
             return log_prior
         else: # std gaussian
-            print("STANDRARD")
             return log_Normal_standard(z, dim=1)
     
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
-        print("---------------------")
-        print("mean_dec: ", mean_dec)
-        print("mean_enc: ", mean_enc)
-        print("logvar_enc: ", logvar_enc)
         re = log_Bernoulli(x, mean_dec, dim=1)
-        print("RECON ERR:" , re)
         log_prior = self.get_log_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
@@ -178,9 +171,8 @@ class VAE(nn.Module):
         if self.args['prior'] == 'vamp':
             # a dummy one hot encoding identitiy matrix 
             # where the backprop will stop
-            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
             # sample N learned pseudo-inputs
-            pseudos = self.pseudos(gradient_start)[0:N]
+            pseudos = self.pseudos(self.gradient_start)[0:N]
             # put through encoder
             ps_h = self.encoder(pseudos)
             ps_mean_enc = self.z_mean(ps_h)
@@ -198,7 +190,7 @@ class VAE(nn.Module):
 
 def training(model, train_loader, max_epoch, warmup_period, file_name, 
         learning_rate=0.0005):
-
+    torch.autograd.set_detect_anomaly(True) 
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
