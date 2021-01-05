@@ -145,5 +145,6 @@ cython_debug/
 code_of_paper/datasets
 code_of_paper/snapshots
 our_code/datasets
-our_code/snapshots
+our_code/snapshots/
+our_code/plots/
 /outputs/
