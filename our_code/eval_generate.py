@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-def generate(modelpath, shape):
+def generate(modelpath, shape, img_filename):
     if torch.cuda.is_available():
         device = torch.device('gpu')
         with open(modelpath, "rb") as f:
@@ -34,4 +34,4 @@ def generate(modelpath, shape):
         sample = sample[:, :, 0]
         plt.imshow(sample, cmap="gray")
 
-    plt.show()
+    plt.savefig(img_filename)

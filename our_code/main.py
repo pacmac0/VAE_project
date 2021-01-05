@@ -51,6 +51,7 @@ frey_config = {
     "learning_rate": 0.0005,
     "epochs": 5,
     "file_name_model": "./snapshots/freyfaces/final_freyfaces.model",
+    "pseudo_from_data": True,
     "device": device
 }
 

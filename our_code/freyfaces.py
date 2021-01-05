@@ -36,4 +36,4 @@ def freyfaces(config):
     )
 
     test(model, val_loader, config)
-    generate(config["file_name_model"], config["input_size"])
+    generate(config["file_name_model"], config["input_size"], "freyfaces.png")

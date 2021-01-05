@@ -111,4 +111,4 @@ def mnist(config):
     print("Training done, time elapsed: ", time_diff)
     print("Testing on test data")
     test(model, test_loader, config)
-    generate(config["file_name_model"], config["input_size"])
+    generate(config["file_name_model"], config["input_size"], "mnist.png")
