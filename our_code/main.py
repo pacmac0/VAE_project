@@ -21,7 +21,9 @@ device = torch.device(dev)
 
 mnist_config = {
     "dataset_name": "static_mnist",
-    "prior": "standard", # "vamp", "mog"
+    "prior": "vamp",
+    # "prior": "mog",
+    # "prior": "standard",
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
@@ -41,7 +43,9 @@ mnist_config = {
 
 frey_config = {
     "dataset_name": "freyfaces",
-    "prior": "standard",  # "vamp", # standard
+    "prior": "vamp",
+    # "prior": "mog",
+    # "prior": "standard",
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
