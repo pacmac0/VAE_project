@@ -198,6 +198,7 @@ class VAE(nn.Module):
         return torch.mean(l), torch.mean(re), torch.mean(kl)
 
     def generate_samples(self, N=25):
+        print('prior', self.args['prior'])
         if self.args['prior'] == 'vamp':
             # sample N learned pseudo-inputs
             pseudos = self.pseudos(self.gradient_start)[0:N]
@@ -208,8 +209,8 @@ class VAE(nn.Module):
             # re-param
             z_samples = self.sample_z(ps_mean_enc, ps_logvar_enc)
         elif self.args['prior'] == 'mog':
-            mean = self.mog_means(self.gradient_start)
-            logvar = self.mog_logvar(self.gradient_start)            
+            mean = self.mog_means(self.gradient_start)[0:N]
+            logvar = self.mog_logvar(self.gradient_start)[0:N]            
             z_samples = self.sample_z(mean, logvar)
         else: # standard prior
             # sample N latent points from std gaussian prior
