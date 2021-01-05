@@ -10,7 +10,7 @@ import time
 import json
 
 import torch.utils.data as data_utils
-from VAE import VAE, train, test
+from VAE import VAE, train, test, add_pseudo_prior
 from eval_generate import generate
 
 
@@ -65,26 +65,7 @@ def load_static_mnist(config):
         shuffle=True,
     )
 
-    # get pseudo init params from random data
-    # and add some randomness to it is not the exactly the same
-    if config["pseudo_from_data"] and config["prior"] == "vamp":
-        config["pseudo_std"] = 0.01
-        np.random.shuffle(train_data)
-        # print("DIM: {}".format(train_data.shape))
-        dat = train_data[
-            0 : int(config["pseudo_components"])
-        ].T  # make columns components(data-points)
-        # print("DIM: {}".format(dat.shape))
-        # add some randomness to the pseudo inputs to avoid overfitting
-        rand_std_norm = np.random.randn(
-            np.prod(config["input_size"]), config["pseudo_components"]
-        )
-        config["pseudo_mean"] = torch.from_numpy(
-            dat + config["pseudo_std"] * rand_std_norm
-        ).float()
-    else:
-        config["pseudo_std"] = 0.01
-        config["pseudo_mean"] = 0.05
+    add_pseudo_prior(config, train_data)
     return train_loader, eval_loader, test_loader
 
 
