@@ -9,7 +9,7 @@ def log_Normal_standard(x, dim=None):
 
 
 def log_Normal_diag(x, mean, log_var, dim=None):
-    print('x', x.size(), 'mean', mean.size(), 'log_var', log_var.size())
+    # print('x', x.size(), 'mean', mean.size(), 'log_var', log_var.size())
     log_normal = -0.5 * (log_var + torch.pow(x - mean, 2) / torch.exp(log_var))
     return torch.sum(log_normal, dim)
 

@@ -15,7 +15,7 @@ else:
         model = torch.load(f,map_location=torch.device('cpu')).to(device)
 
 
-samples = model.generate_x()
+samples = model.generate_samples()
 samples = samples.data.cpu().numpy()
 
 fig = plt.figure(figsize=(5, 5))
