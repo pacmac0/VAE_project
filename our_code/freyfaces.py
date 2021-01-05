@@ -12,6 +12,7 @@ if not os.path.exists('models'):
     os.makedirs('models')
 
 config = {
+    "dataset_name": "freyfaces",
     "prior": "standard",  # "vamp", # standard
     "pseudo_components": 500,
     "warmup": 100,

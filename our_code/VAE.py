@@ -342,7 +342,7 @@ def testing(model, train_loader, test_loader):
     mean_kl = sum(test_kl) / len(test_loader)
 
     # store loss-values for plotting
-    filename = 'plots/{}_lossvalues_test.json'.format(model.args['prior'])
+    filename = 'plots/{}_{}_lossvalues_test.json'.format(model.args['dataset_name'], model.args['prior'])
     loss_values_per_batch = {
         'model_name': filename,
         "test_loss": test_loss,

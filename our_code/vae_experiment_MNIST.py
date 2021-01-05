@@ -13,7 +13,7 @@ from VAE import VAE, training, testing
 
 config = {
     #"seed": 14,
-    #"dataset_name": "static_mnist",
+    "dataset_name": "static_mnist",
     #"model_name": "vae",
     "prior": "standard", # "vamp", "mog"
     "pseudo_components": 500,
