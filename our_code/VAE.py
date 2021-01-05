@@ -79,13 +79,10 @@ class VAE(nn.Module):
 
         if self.args['prior'] == 'mog':
             self.mog_means = nn.Sequential(
-                nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"]), bias=False),
-                nn.Hardtanh(min_val=0, max_val=1)
+                nn.Linear(100, 40, bias=False)
             )
             self.mog_logvar =  nn.Sequential(
-                nn.Linear(self.args["pseudo_components"], 
-                    np.prod(self.args["input_size"]), bias=False),
+                nn.Linear(100, 40, bias=False),
                 nn.Hardtanh(min_val=-2, max_val=2)
             )
         # initialise weights for linear layers, not activations
@@ -146,16 +143,14 @@ class VAE(nn.Module):
             K = self.args['pseudo_components']
             return torch.log(s / K) # logged eq.(9)
         elif self.args['prior'] == 'mog':
-            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            gradient_start = Variable(torch.eye(100, 40), requires_grad=False).to(device) 
             mean = self.mog_means(gradient_start)
             logvar = self.mog_logvar(gradient_start)
-            mean = self.encoder(self.mog_means(gradient_start))
-            logvar = self.encoder(self.mog_logvar(gradient_start))
 
             logs  = log_Normal_diag(z, mean, logvar, dim=1)
             s = torch.sum(torch.exp(logs))
-            K = self.args['pseudo_components']
-            return torch.log(s / K)
+            # K = self.args['pseudo_components']
+            return torch.log(s / 100)
         else: # std gaussian
             return log_Normal_standard(z, dim=1)
         
