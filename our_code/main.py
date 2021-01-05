@@ -20,19 +20,15 @@ else:
 device = torch.device(dev)
 
 mnist_config = {
-    #"seed": 14,
     "dataset_name": "static_mnist",
     "prior": "standard", # "vamp", "mog"
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
-    #"z2_size": 40,
     "batch_size": 100,
     "test_batch_size": 100,
     "input_size": [1, 28, 28],
     "input_type": "binary",
-    #"dynamic_binarization": False,
-    #"use_training_data_init": 1,
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
@@ -57,7 +53,6 @@ frey_config = {
     "file_name_model": "./snapshots/freyfaces/final_freyfaces.model",
     "device": device
 }
-
 
 
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
