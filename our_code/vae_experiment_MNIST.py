@@ -84,7 +84,8 @@ def load_static_mnist(args):
         batch_size=args["test_batch_size"], shuffle=True)
 
     # get pseudo init params from random data
-    if args['pseudo_from_data'] == True:
+    # and add some randomness to it is not the exactly the same
+    if args['pseudo_from_data']:
         args['pseudo_std'] = 0.01
         np.random.shuffle(train_data)
         #print("DIM: {}".format(train_data.shape))
