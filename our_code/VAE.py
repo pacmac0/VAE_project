@@ -77,6 +77,17 @@ class VAE(nn.Module):
                 nn.Hardtanh(min_val=0, max_val=1)
                 )
 
+        if self.args['prior'] == 'mog':
+            self.mog_means = nn.Sequential(
+                nn.Linear(self.args["pseudo_components"], 
+                    np.prod(self.args["input_size"]), bias=False),
+                nn.Hardtanh(min_val=0, max_val=1)
+            )
+            self.mog_logvar =  nn.Sequential(
+                nn.Linear(self.args["pseudo_components"], 
+                    np.prod(self.args["input_size"]), bias=False),
+                nn.Hardtanh(min_val=-2, max_val=2)
+            )
         # initialise weights for linear layers, not activations
         # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_training_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
@@ -134,6 +145,17 @@ class VAE(nn.Module):
             s = torch.sum(torch.exp(logs))
             K = self.args['pseudo_components']
             return torch.log(s / K) # logged eq.(9)
+        elif self.args['prior'] == 'mog':
+            gradient_start = Variable(torch.eye(self.args["pseudo_components"], self.args["pseudo_components"]), requires_grad=False).to(device) 
+            mean = self.mog_means(gradient_start)
+            logvar = self.mog_logvar(gradient_start)
+            mean = self.encoder(self.mog_means(gradient_start))
+            logvar = self.encoder(self.mog_logvar(gradient_start))
+
+            logs  = log_Normal_diag(z, mean, logvar, dim=1)
+            s = torch.sum(torch.exp(logs))
+            K = self.args['pseudo_components']
+            return torch.log(s / K)
         else: # std gaussian
             return log_Normal_standard(z, dim=1)
         
@@ -190,8 +212,6 @@ def training(model, train_loader, max_epoch, warmup_period, file_name,
 
         for i, data in enumerate(train_loader):
             optimizer.zero_grad()
-            # print("\nTraining batch #", i)
-
             # get input, data as the list of [inputs, label]
             inputs, _ = data
             inputs = inputs.to(device)

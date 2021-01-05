@@ -15,7 +15,7 @@ config = {
     #"seed": 14,
     #"dataset_name": "static_mnist",
     #"model_name": "vae",
-    "prior": "vamp", # standard
+    "prior": "mog", # standard
     "pseudo_components": 500,
     "warmup": 100,
     "z1_size": 40,
