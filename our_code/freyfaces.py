@@ -8,25 +8,13 @@ from VAE import VAE
 from eval_generate import generate
 import os
 
-if not os.path.exists('models'):
-    os.makedirs('models')
+for p in ['snapshots/freyfaces', 'snapshots/mnist']:
+    if not os.path.exists(p):
+        os.makedirs(p)
 
-config = {
-    "dataset_name": "freyfaces",
-    "prior": "standard",  # "vamp", # standard
-    "pseudo_components": 500,
-    "warmup": 100,
-    "z1_size": 40,
-    "batch_size": 100,
-    "input_size": [1, 28, 20],
-    "input_type": "binary",
-    "learning_rate": 0.0005,
-    "epochs": 2000,
-    "model_path": "./models/freyfaces"
-}
 
 def train(
-    model, train_loader, epochs, warmup_period, learning_rate=0.0005
+        model, train_loader, epochs, warmup_period, config, learning_rate=0.0005
 ):
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -109,8 +97,7 @@ else:
 device = torch.device(dev)
 
 # DOWNLOAD FROM HERE: http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat
-if __name__ == "__main__":
-
+def freyfaces(config):
     path = "datasets/freyfaces/frey_rawface.mat"
 
     data = loadmat(path)
@@ -134,8 +121,9 @@ if __name__ == "__main__":
         train_loader,
         config["epochs"],
         config["warmup"],
+        config,
         config["learning_rate"],
     )
 
     test(model, val_loader)
-    generate(config["model_path"], False)
+    generate(config["model_path"], config["input_size"])

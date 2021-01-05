@@ -256,4 +256,5 @@ def mnist(config):
 
 
 if __name__ == "__main__":
+
     mnist(config)
