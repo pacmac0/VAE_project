@@ -7,6 +7,7 @@ import time
 from collections import OrderedDict
 import math
 import json
+import random
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
@@ -14,7 +15,6 @@ from distribution_helpers import (
     log_Logistic_256
 )
 from eval_generate import generate
-
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
@@ -26,7 +26,6 @@ class GatedDense(nn.Module):
 
     def forward(self, x):
         return self.h(x) * self.sigmoid(self.g(x))
-
 
 class VAE(nn.Module):
     def __init__(self, config):
@@ -41,7 +40,7 @@ class VAE(nn.Module):
         )
         self.z_mean = nn.Linear(self.n_hidden, self.config["z1_size"])
 
-        # Choice of arguments made to avoid variance to converge to zero
+        # Choice of interval made to avoid variance to converge to zero
         self.z_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, self.config["z1_size"], bias=True),
             nn.Hardtanh(min_val=-6, max_val=2),
@@ -60,7 +59,8 @@ class VAE(nn.Module):
             nn.Sigmoid(),
         )
 
-        # OBS: we're not using this for discrete data
+        # OBS: we're not using this for binary data
+        # Choice of interval made to avoid variance to converge to zero
         self.p_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, np.prod(self.config["input_size"]), bias=True),
             nn.Hardtanh(min_val=-4.5, max_val=0),
@@ -109,6 +109,7 @@ class VAE(nn.Module):
                 )
 
         if self.config["prior"] == "mog":
+            # TODO: tune interval for activation functions
             self.mog_means = nn.Sequential(
                 OrderedDict(
                     [
@@ -140,7 +141,7 @@ class VAE(nn.Module):
                 )
             )
             # an identity matrix that represents a one-hot encoding for
-            # the pseudo-data, where backprop stops.
+            # the each parameter pair, where backprop stops.
             self.gradient_start = Variable(
                 torch.eye(
                     self.config["pseudo_components"], self.config["pseudo_components"]
@@ -151,6 +152,7 @@ class VAE(nn.Module):
             # just set them from arguments
             # self.mog_means.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
             # self.mog_logvar.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
+            # TODO: should we use xavier init here?
             torch.nn.init.xavier_uniform_(self.mog_means.linear.weight)
             torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
 
@@ -207,10 +209,10 @@ class VAE(nn.Module):
             return log_Normal_standard(z, dim=1)
 
     # Loss function: -rec.err + beta*KL-div
-    def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=1):
+    def get_loss(self, x, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1):
         if self.config['input_type'] == "binary":
             re = log_Bernoulli(x, mean_dec, dim=1)
-        elif "continues":
+        elif self.config['input_type'] == "cont":
             re = -log_Logistic_256(x, mean_dec, logvar_dec, dim=1)
         else:
             raise Exception("Input type unknown")
@@ -246,9 +248,14 @@ class VAE(nn.Module):
         x_mean = self.p_mean(z)
         return x_mean
 
+    def get_pseudos(self, N = 25):
+        # pick random pseudo-inputs
+        start = random.randint(0, self.config["pseudo_components"]-1-N)
+        return self.pseudos(self.gradient_start)[start:start+N] 
+        #return self.pseudos(self.gradient_start)[0:N] 
 
 def train(model, train_loader, config, test_loader):
-    torch.autograd.set_detect_anomaly(True)
+    torch.autograd.set_detect_anomaly(True) # trace err if nan values
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
@@ -298,9 +305,8 @@ def train(model, train_loader, config, test_loader):
 
             # calculate loss
             loss, RE, KL = model.get_loss(
-                data, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=beta
+                data, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=beta
             )
-
             # backpropagate
             loss.backward()
             optimizer.step()
@@ -364,7 +370,7 @@ def test(model, test_loader, config):
         data = data.to(config["device"])
 
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(data)
-        loss, RE, KL = model.get_loss(data, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=1.0)
+        loss, RE, KL = model.get_loss(data, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1.0)
 
         test_loss.append(loss.item())
         test_re.append(RE.item())
@@ -401,7 +407,7 @@ def test(model, test_loader, config):
 
 def add_pseudo_prior(config, train_data):
     # get pseudo init params from random data
-    # and add some randomness to it is not the exactly the same
+    # and add some randomness so it is not the exactly the same
     if config["pseudo_from_data"] and config["prior"] == "vamp":
         config["pseudo_std"] = 0.01
         np.random.shuffle(train_data)
@@ -418,5 +424,6 @@ def add_pseudo_prior(config, train_data):
             dat + config["pseudo_std"] * rand_std_norm
         ).float()
     else:
+        # TODO: fine tune more? Maybe not same for frey and MNIST
         config["pseudo_std"] = 0.01
         config["pseudo_mean"] = 0.05
