@@ -11,6 +11,7 @@ from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
     log_Bernoulli,
+    log_Logistic_256
 )
 from eval_generate import generate
 
@@ -40,7 +41,7 @@ class VAE(nn.Module):
         )
         self.z_mean = nn.Linear(self.n_hidden, self.config["z1_size"])
 
-        # TODO: play around with min max vals for hardtanh
+        # Choice of arguments made to avoid variance to converge to zero
         self.z_logvar = nn.Sequential(
             nn.Linear(self.n_hidden, self.config["z1_size"], bias=True),
             nn.Hardtanh(min_val=-6, max_val=2),
@@ -65,34 +66,6 @@ class VAE(nn.Module):
             nn.Hardtanh(min_val=-4.5, max_val=0),
         )
 
-        # init a layer that will learn pseudos
-        if self.config["prior"] == "vamp":
-            self.pseudos = nn.Sequential(
-                nn.Linear(
-                    self.config["pseudo_components"],
-                    np.prod(self.config["input_size"]),
-                    bias=False,
-                ),
-                nn.Hardtanh(min_val=0, max_val=1),
-            )
-
-        if self.config["prior"] == "mog":
-            self.mog_means = nn.Sequential(
-                nn.Linear(
-                    self.config["pseudo_components"],
-                    np.prod(self.config["input_size"]),
-                    bias=False,
-                ),
-                nn.Hardtanh(min_val=0, max_val=1),
-            )
-            self.mog_logvar = nn.Sequential(
-                nn.Linear(
-                    self.config["pseudo_components"],
-                    np.prod(self.config["input_size"]),
-                    bias=False,
-                ),
-                nn.Hardtanh(min_val=-6, max_val=2),
-            )
         # initialise weights for linear layers, not activations
         # https://www.researchgate.net/publication/215616968_Understanding_the_difficulty_of_train_deep_feedforward_neural_networks [12], eq. (16).
         for m in self.modules():
@@ -134,7 +107,6 @@ class VAE(nn.Module):
                 self.pseudos.linear.weight.data.normal_(
                     self.config["pseudo_mean"], self.config["pseudo_std"]
                 )
-                # torch.nn.init.xavier_uniform_(self.pseudos.linear.weight)
 
         if self.config["prior"] == "mog":
             self.mog_means = nn.Sequential(
@@ -217,8 +189,6 @@ class VAE(nn.Module):
             K = self.config["pseudo_components"]
             a = log_Normal_diag(z, means, logvars, dim=2) - math.log(K)
             b, _ = torch.max(a, 1)
-
-            # calculte log-sum-exp
             log_prior = b + torch.log(torch.sum(torch.exp(a - b.unsqueeze(1)), 1))
             return log_prior
         elif self.config["prior"] == "mog":
@@ -237,8 +207,14 @@ class VAE(nn.Module):
             return log_Normal_standard(z, dim=1)
 
     # Loss function: -rec.err + beta*KL-div
-    def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, beta=1):
-        re = log_Bernoulli(x, mean_dec, dim=1)
+    def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=1):
+        if self.args['input_type'] == "binary":
+            re = log_Bernoulli(x, mean_dec, dim=1)
+        elif "continues":
+            re = -log_Logistic_256(x, mean_dec, logvar_dec, dim=1)
+        else:
+            raise Exception("Input type unknown")
+    
         log_prior = self.get_log_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
@@ -307,7 +283,7 @@ def train(model, train_loader, config, test_loader):
 
             # calculate loss
             loss, RE, KL = model.get_loss(
-                data, mean_dec, z, mean_enc, logvar_enc, beta=beta
+                data, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=beta
             )
 
             # backpropagate

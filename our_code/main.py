@@ -51,7 +51,7 @@ frey_config = {
     "z1_size": 40,
     "batch_size": 100,
     "input_size": [1, 28, 20],
-    "input_type": "binary",
+    "input_type": "continues",
     "learning_rate": 0.0005,
     "epochs": 5,
     "file_name_model": "./snapshots/freyfaces/freyfaces",
