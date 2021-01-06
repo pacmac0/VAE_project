@@ -351,7 +351,7 @@ def test(model, test_loader, config, epoch):
     # evaulation mode
     model.eval()
 
-    for i, data in enumerate(test_loader):
+    for data in test_loader:
         # get input, data as the list of [data, label]
         if config["dataset_name"] == "static_mnist":
             data, _ = data
@@ -360,7 +360,7 @@ def test(model, test_loader, config, epoch):
         data = data.to(config["device"])
 
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(data)
-        loss, RE, KL = model.get_loss(data, mean_dec, z, mean_enc, logvar_enc, beta=1.0)
+        loss, RE, KL = model.get_loss(data, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=1.0)
 
         test_loss.append(loss.item())
         test_re.append(RE.item())
