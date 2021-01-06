@@ -208,7 +208,7 @@ class VAE(nn.Module):
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_dec, z, mean_enc, logvar_enc, logvar_dec, beta=1):
-        if self.args['input_type'] == "binary":
+        if self.config['input_type'] == "binary":
             re = log_Bernoulli(x, mean_dec, dim=1)
         elif "continues":
             re = -log_Logistic_256(x, mean_dec, logvar_dec, dim=1)
