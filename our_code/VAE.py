@@ -271,7 +271,7 @@ class VAE(nn.Module):
         return x_mean
 
 
-def train(model, train_loader, config):
+def train(model, train_loader, config, test_loader):
     torch.autograd.set_detect_anomaly(True)
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
@@ -335,6 +335,7 @@ def train(model, train_loader, config):
         train_re_per_epoch.append(epoch_re)
         train_kl_per_epoch.append(epoch_kl)
 
+        test(model, test_loader, config, epoch)
         modelname = f'{config["file_name_model"]}_epoch{epoch}'
         # save parameters
         with open(modelname, "wb") as f:
@@ -366,7 +367,7 @@ def train(model, train_loader, config):
         torch.save(model, f)
     generate(modelname, config["input_size"], modelname + ".png")
 
-def test(model, test_loader, config):
+def test(model, test_loader, config, epoch):
     test_loss = []
     test_re = []
     test_kl = []
@@ -398,7 +399,7 @@ def test(model, test_loader, config):
         config["dataset_name"], config["prior"]
     )
     loss_values_per_batch = {
-        "model_name": filename,
+        "model_name": filename + str(epoch),
         "test_loss": test_loss,
         "test_re": test_re,
         "test_kl": test_kl,

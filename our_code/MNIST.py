@@ -81,6 +81,7 @@ def mnist(config):
         model,
         train_loader,
         config,
+        test_loader
     )
     end_time = time.time()
     time_diff = end_time - start_time

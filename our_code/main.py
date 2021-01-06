@@ -61,5 +61,5 @@ frey_config = {
 
 
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
-freyfaces(frey_config)
+# freyfaces(frey_config)
 mnist(mnist_config)

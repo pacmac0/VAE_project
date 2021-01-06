@@ -35,5 +35,5 @@ def plot_test(path):
 
 
 if __name__ == "__main__":
-    plot_train(path="plots/static_mnist_standard_lossvalues_train.json")
-    plot_test(path="plots/static_mnist_standard_lossvalues_test.json")
+    plot_train(path="plots/static_mnist_vamp_lossvalues_train.json")
+    plot_test(path="plots/static_mnist_vamp_lossvalues_test.json")
