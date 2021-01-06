@@ -35,6 +35,7 @@ def freyfaces(config):
         model,
         train_loader,
         config,
+        val_loader
     )
 
     test(model, val_loader, config)
