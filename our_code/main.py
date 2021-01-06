@@ -14,7 +14,7 @@ if torch.cuda.is_available():
     print("Using GPU Cuda")
 else:
     dev = "cpu"
-    torch.set_num_threads(8)  # threading on cpu only
+    torch.set_num_threads(len(os.sched_getaffinity(0)))  # threading on cpu only
     print("Using CPU")
 
 device = torch.device(dev)
