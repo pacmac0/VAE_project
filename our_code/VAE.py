@@ -252,6 +252,20 @@ def train(model, train_loader, config, test_loader):
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
+    filename = "{}_{}_lossvalues_test_per_epoch.json".format(
+        config["dataset_name"], config["prior"]
+    )
+    test_loss_values_per_epoch = {
+        "model_name": filename,
+        "test_loss": [],
+        "test_re": [],
+        "test_kl": [],
+        "number_epochs": config["epochs"],
+        "prior": config["prior"],
+        "pseudo_components": config["pseudo_components"],
+        "learning_rate": config["learning_rate"],
+        "hidden_components": config["z1_size"],
+    }
     train_loss_per_epoch = []
     train_re_per_epoch = []
     train_kl_per_epoch = []
@@ -269,6 +283,7 @@ def train(model, train_loader, config, test_loader):
         train_beta = []
 
         start_epoch_time = time.time()
+
 
         for i, data in enumerate(train_loader):
             optimizer.zero_grad()
@@ -311,31 +326,20 @@ def train(model, train_loader, config, test_loader):
         train_re_per_epoch.append(epoch_re)
         train_kl_per_epoch.append(epoch_kl)
 
-        test(model, test_loader, config, epoch)
+        test_loss, test_re, test_kl = test(model, test_loader, config)
+        test_loss_values_per_epoch["test_loss"].append(test_loss)
+        test_loss_values_per_epoch["test_re"].append(test_re)
+        test_loss_values_per_epoch["test_kl"].append(test_kl)
+
         modelname = f'{config["file_name_model"]}_epoch{epoch}'
         # save parameters
         with open(modelname, "wb") as f:
             torch.save(model, f)
         generate(modelname, config["input_size"], modelname + ".png")
 
-    # store loss-values per epoch for plotting
-    filename = "{}_{}_lossvalues_train.json".format(
-        config["dataset_name"], config["prior"]
-    )
-    loss_values_per_epoch = {
-        "model_name": filename,
-        "train_loss": train_loss_per_epoch,
-        "train_re": train_re_per_epoch,
-        "train_kl": train_kl_per_epoch,
-        "number_epochs": config["epochs"],
-        "prior": config["prior"],
-        "pseudo_components": config["pseudo_components"],
-        "learning_rate": config["learning_rate"],
-        "hidden_components": config["z1_size"],
-    }
 
     with open("plots/{}".format(filename), "w+") as fp:
-        json.dump(loss_values_per_epoch, fp)
+        json.dump(test_loss_values_per_epoch, fp)
 
     modelname = f'{config["file_name_model"]}'
     # save parameters
@@ -343,7 +347,7 @@ def train(model, train_loader, config, test_loader):
         torch.save(model, f)
     generate(modelname, config["input_size"], modelname + ".png")
 
-def test(model, test_loader, config, epoch):
+def test(model, test_loader, config):
     test_loss = []
     test_re = []
     test_kl = []
@@ -371,8 +375,8 @@ def test(model, test_loader, config, epoch):
     mean_kl = sum(test_kl) / len(test_loader)
 
     # store loss-values for plotting
-    filename = "{}_{}_{}_lossvalues_test.json".format(
-        config["dataset_name"], config["prior"], epoch
+    filename = "{}_{}__lossvalues_test.json".format(
+        config["dataset_name"], config["prior"]
     )
     loss_values_per_batch = {
         "model_name": filename,
@@ -392,6 +396,7 @@ def test(model, test_loader, config, epoch):
     print(
         f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
     )
+    return mean_loss, mean_re, mean_kl
 
 
 def add_pseudo_prior(config, train_data):

@@ -16,6 +16,7 @@ def generate(modelpath, shape, img_filename):
     samples = model.generate_samples()
     samples = samples.data.cpu().numpy()
 
+    plt.clf()
     fig = plt.figure(figsize=(5, 5))
     gs = gridspec.GridSpec(5, 5)
     gs.update(wspace=0.05, hspace=0.05)
