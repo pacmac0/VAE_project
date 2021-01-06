@@ -62,5 +62,18 @@ frey_config = {
 
 
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
+
+# vampprior
 freyfaces(frey_config)
-#mnist(mnist_config)
+mnist(mnist_config)
+
+frey_config["prior"] = "standard"
+mnist_config["prior"] = "standard"
+freyfaces(frey_config)
+mnist(mnist_config)
+
+
+frey_config["prior"] = "mog"
+mnist_config["prior"] = "mog"
+freyfaces(frey_config)
+mnist(mnist_config)

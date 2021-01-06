@@ -357,7 +357,7 @@ def test(model, test_loader, config, epoch):
     # evaulation mode
     model.eval()
 
-    for i, data in enumerate(test_loader):
+    for data in test_loader:
         # get input, data as the list of [data, label]
         if config["dataset_name"] == "static_mnist":
             data, _ = data
@@ -368,7 +368,6 @@ def test(model, test_loader, config, epoch):
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(data)
         loss, RE, KL = model.get_loss(data, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1.0)
 
-
         test_loss.append(loss.item())
         test_re.append(RE.item())
         test_kl.append(KL.item())
@@ -378,11 +377,11 @@ def test(model, test_loader, config, epoch):
     mean_kl = sum(test_kl) / len(test_loader)
 
     # store loss-values for plotting
-    filename = "{}_{}_lossvalues_test.json".format(
-        config["dataset_name"], config["prior"]
+    filename = "{}_{}_{}_lossvalues_test.json".format(
+        config["dataset_name"], config["prior"], epoch
     )
     loss_values_per_batch = {
-        "model_name": filename + str(epoch),
+        "model_name": filename,
         "test_loss": test_loss,
         "test_re": test_re,
         "test_kl": test_kl,

@@ -23,7 +23,7 @@ def freyfaces(config):
     train_loader = torch.utils.data.DataLoader(
         ff_torch[:train_size], config["batch_size"], shuffle=True
     )
-    val_loader = torch.utils.data.DataLoader(
+    test_loader = torch.utils.data.DataLoader(
         ff_torch[train_size:], config["batch_size"], shuffle=True
     )
 
@@ -35,7 +35,6 @@ def freyfaces(config):
         model,
         train_loader,
         config,
-        val_loader
+        test_loader
     )
-
-    test(model, val_loader, config)
+    test(model, test_loader, config, "final")
