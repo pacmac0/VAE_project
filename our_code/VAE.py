@@ -158,6 +158,8 @@ class VAE(nn.Module):
             torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
 
     # re-parameterization
+    # enough to sample one point if batches large enough,
+    # 2.4 https://arxiv.org/pdf/1312.6114.pdf
     def sample_z(self, mean, logvar):
         e = Variable(torch.randn(self.config["z1_size"])).to(self.config["device"])
         stddev = torch.exp(logvar / 2)
@@ -211,6 +213,8 @@ class VAE(nn.Module):
 
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1):
+        # Different types of data have different likelihoods
+        # Appendix C, https://arxiv.org/pdf/1312.6114.pdf
         if self.config['input_type'] == "binary":
             re = log_Bernoulli(x, mean_dec, dim=1)
         elif self.config['input_type'] == "cont":
