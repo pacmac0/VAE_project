@@ -87,4 +87,3 @@ def mnist(config):
     time_diff = end_time - start_time
     print("Training done, time elapsed: ", time_diff)
     print("Testing on test data")
-    test(model, test_loader, config)
