@@ -12,6 +12,7 @@ from distribution_helpers import (
     log_Normal_diag,
     log_Bernoulli,
 )
+from eval_generate import generate
 
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
@@ -245,7 +246,6 @@ class VAE(nn.Module):
         return torch.mean(l), torch.mean(re), torch.mean(kl)
 
     def generate_samples(self, N=25):
-        print("prior", self.config["prior"])
         if self.config["prior"] == "vamp":
             # sample N learned pseudo-data
             pseudos = self.pseudos(self.gradient_start)[0:N]
@@ -335,9 +335,11 @@ def train(model, train_loader, config):
         train_re_per_epoch.append(epoch_re)
         train_kl_per_epoch.append(epoch_kl)
 
+        modelname = f'{config["file_name_model"]}_epoch{epoch}'
         # save parameters
-        with open(config["file_name_model"], "wb") as f:
+        with open(modelname, "wb") as f:
             torch.save(model, f)
+        generate(modelname, config["input_size"], modelname + ".png")
 
     # store loss-values per epoch for plotting
     filename = "{}_{}_lossvalues_train.json".format(
@@ -358,6 +360,11 @@ def train(model, train_loader, config):
     with open("plots/{}".format(filename), "w+") as fp:
         json.dump(loss_values_per_epoch, fp)
 
+    modelname = f'{config["file_name_model"]}'
+    # save parameters
+    with open(modelname, "wb") as f:
+        torch.save(model, f)
+    generate(modelname, config["input_size"], modelname + ".png")
 
 def test(model, test_loader, config):
     test_loss = []

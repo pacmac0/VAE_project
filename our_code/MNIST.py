@@ -64,6 +64,7 @@ def load_static_mnist(config):
 
 
 def mnist(config):
+    print(config)
     torch.manual_seed(14)
 
     train_loader, eval_loader, test_loader = load_static_mnist(config)
@@ -86,4 +87,3 @@ def mnist(config):
     print("Training done, time elapsed: ", time_diff)
     print("Testing on test data")
     test(model, test_loader, config)
-    generate(config["file_name_model"], config["input_size"], "mnist.png")

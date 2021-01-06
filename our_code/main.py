@@ -35,7 +35,7 @@ mnist_config = {
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
     "epochs": 5,
-    "file_name_model": "./snapshots/mnist/final_mnist.model",
+    "file_name_model": "./snapshots/mnist/mnist",
     "pseudo_from_data": True,
     "device": device,
 }
@@ -54,7 +54,7 @@ frey_config = {
     "input_type": "binary",
     "learning_rate": 0.0005,
     "epochs": 5,
-    "file_name_model": "./snapshots/freyfaces/final_freyfaces.model",
+    "file_name_model": "./snapshots/freyfaces/freyfaces",
     "pseudo_from_data": True,
     "device": device,
 }
@@ -62,5 +62,4 @@ frey_config = {
 
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 freyfaces(frey_config)
-
 mnist(mnist_config)
