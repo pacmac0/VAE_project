@@ -371,11 +371,11 @@ def test(model, test_loader, config, epoch):
     mean_kl = sum(test_kl) / len(test_loader)
 
     # store loss-values for plotting
-    filename = "{}_{}_lossvalues_test.json".format(
-        config["dataset_name"], config["prior"]
+    filename = "{}_{}_{}_lossvalues_test.json".format(
+        config["dataset_name"], config["prior"], epoch
     )
     loss_values_per_batch = {
-        "model_name": filename + str(epoch),
+        "model_name": filename,
         "test_loss": test_loss,
         "test_re": test_re,
         "test_kl": test_kl,
