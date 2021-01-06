@@ -37,7 +37,7 @@ mnist_config = {
     "learning_rate": 0.0005,
     "epochs": 5,
     "file_name_model": "./snapshots/mnist/mnist",
-    "pseudo_from_data": True,
+    "pseudo_from_data": False,
     "device": device,
 }
 
@@ -56,7 +56,7 @@ frey_config = {
     "learning_rate": 0.0005,
     "epochs": 5,
     "file_name_model": "./snapshots/freyfaces/freyfaces",
-    "pseudo_from_data": True,
+    "pseudo_from_data": False,
     "device": device,
 }
 

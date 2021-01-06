@@ -34,11 +34,4 @@ def plot_pseudos(modelpath, shape, img_filename):
         sample = sample[:, :, 0]
         plt.imshow(sample, cmap="gray")
 
-    plt.show()
-
-
-# test run for freyfaces
-modelpath = "snapshots/freyfaces/freyfaces_epoch5"
-data_size = [1, 28, 20]
-img_path="/plots/"
-plot_pseudos(modelpath, data_size, img_path)
+    plt.savefig(img_filename)

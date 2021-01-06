@@ -15,6 +15,7 @@ from distribution_helpers import (
     log_Logistic_256
 )
 from eval_generate import generate
+from pseudos_plot import plot_pseudos
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
@@ -342,6 +343,8 @@ def train(model, train_loader, config, test_loader):
         with open(modelname, "wb") as f:
             torch.save(model, f)
         generate(modelname, config["input_size"], modelname + ".png")
+        if config["prior"] == "vamp":
+            plot_pseudos(modelname, config["input_size"], modelname + "_pseudos.png")
 
 
     with open("plots/{}".format(filename), "w+") as fp:
