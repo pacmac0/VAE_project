@@ -7,6 +7,7 @@ from eval_generate import generate
 
 
 def freyfaces(config):
+    print(config)
     path = "datasets/freyfaces/frey_rawface.mat"
 
     train_data = loadmat(path)
@@ -37,4 +38,3 @@ def freyfaces(config):
     )
 
     test(model, val_loader, config)
-    generate(config["file_name_model"], config["input_size"], "freyfaces.png")
