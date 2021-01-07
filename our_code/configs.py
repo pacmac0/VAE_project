@@ -24,8 +24,8 @@ mnist_vamp = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 2000,
-    "pseudo_from_data": False,
+    "epochs": 1000,
+    "pseudo_from_data": True,
     "device": device,
 }
 
@@ -42,7 +42,7 @@ mnist_standard = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 2000,
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -61,7 +61,7 @@ mnist_mog = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 2000,
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -77,8 +77,8 @@ frey_vamp = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 2000,
-    "pseudo_from_data": False,
+    "epochs": 1000,
+    "pseudo_from_data": True,
     "device": device,
 }
 
@@ -92,7 +92,7 @@ frey_mog = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 2000,
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -108,7 +108,7 @@ frey_standard = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 30,
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }
