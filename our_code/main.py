@@ -57,7 +57,7 @@ frey_config = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 4,
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -66,7 +66,7 @@ frey_config = {
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 
 # vampprior
-# freyfaces(frey_config)
+freyfaces(frey_config)
 mnist(mnist_config)
 
 frey_config["prior"] = "standard"
