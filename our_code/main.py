@@ -7,7 +7,7 @@ import torch
 
 for experiment in ["freyfaces", "mnist"]:
     for prior in ["mog", "vamp", "standard"]:
-        for subfolder in ["images", "models"]:
+        for subfolder in ["images", "models", "logs"]:
             p = f'experiments/{experiment}/{prior}/{subfolder}'
             if not os.path.exists(p):
                 os.makedirs(p)
@@ -39,7 +39,7 @@ mnist_config = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 4,
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }

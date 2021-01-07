@@ -6,15 +6,33 @@ import torch.optim as optim
 import time
 from collections import OrderedDict
 import math
-import json
+import jsonpickle
 import random
 from distribution_helpers import (
     log_Normal_standard,
     log_Normal_diag,
     log_Bernoulli,
-    log_Logistic_256
+    log_Logistic_256,
 )
 from eval_generate import generate
+
+class Logger():
+    def __init__(self, config):
+        self.config = config
+        self.testloss = []
+        self.testre = []
+        self.testkl = []
+
+        self.trainloss = []
+        self.trainre = []
+        self.trainkl = []
+
+    def dump(self):
+        filename = f'experiments/{config["dataset_name"]}/{config["prior"]}/log'
+        json = jsonpickle.encode(self)
+        with open(filename, "w+") as f:
+            f.write(json)
+
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
@@ -27,11 +45,13 @@ class GatedDense(nn.Module):
     def forward(self, x):
         return self.h(x) * self.sigmoid(self.g(x))
 
+
 class VAE(nn.Module):
     def __init__(self, config):
         super(VAE, self).__init__()
         self.config = config
         self.n_hidden = 300
+        self.logger = Logger(config)
 
         # encoder q(z|x)
         self.encoder = nn.Sequential(
@@ -210,22 +230,24 @@ class VAE(nn.Module):
         else:  # std gaussian
             return log_Normal_standard(z, dim=1)
 
+
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1):
         # Different types of data have different likelihoods
         # Appendix C, https://arxiv.org/pdf/1312.6114.pdf
-        if self.config['input_type'] == "binary":
+        if self.config["input_type"] == "binary":
             re = log_Bernoulli(x, mean_dec, dim=1)
-        elif self.config['input_type'] == "cont":
+        elif self.config["input_type"] == "cont":
             re = -log_Logistic_256(x, mean_dec, logvar_dec, dim=1)
         else:
             raise Exception("Input type unknown")
-    
+
         log_prior = self.get_log_prior(z)
         log_dec_posterior = log_Normal_diag(z, mean_enc, logvar_enc, dim=1)
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta * kl
         return torch.mean(l), torch.mean(re), torch.mean(kl)
+
 
     def generate_samples(self, N=25):
         if self.config["prior"] == "vamp":
@@ -252,14 +274,15 @@ class VAE(nn.Module):
         x_mean = self.p_mean(z)
         return x_mean
 
-    def get_pseudos(self, N = 25):
+    def get_pseudos(self, N=25):
         # pick random pseudo-inputs
-        start = random.randint(0, self.config["pseudo_components"]-1-N)
-        return self.pseudos(self.gradient_start)[start:start+N] 
-        #return self.pseudos(self.gradient_start)[0:N] 
+        start = random.randint(0, self.config["pseudo_components"] - 1 - N)
+        return self.pseudos(self.gradient_start)[start : start + N]
+        # return self.pseudos(self.gradient_start)[0:N]
+
 
 def train(model, train_loader, config, test_loader):
-    torch.autograd.set_detect_anomaly(True) # trace err if nan values
+    torch.autograd.set_detect_anomaly(True)  # trace err if nan values
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
@@ -294,7 +317,6 @@ def train(model, train_loader, config, test_loader):
         train_beta = []
 
         start_epoch_time = time.time()
-
 
         for i, data in enumerate(train_loader):
             optimizer.zero_grad()
@@ -345,9 +367,9 @@ def train(model, train_loader, config, test_loader):
         if epoch % 20 == 0:
             generate(model, config, epoch)
 
-
     with open("plots/{}".format(filename), "w+") as fp:
         json.dump(test_loss_values_per_epoch, fp)
+
 
 def test(model, test_loader, config):
     test_loss = []
@@ -366,7 +388,9 @@ def test(model, test_loader, config):
         data = data.to(config["device"])
 
         mean_dec, logvar_dec, z, mean_enc, logvar_enc = model.forward(data)
-        loss, RE, KL = model.get_loss(data, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1.0)
+        loss, RE, KL = model.get_loss(
+            data, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1.0
+        )
 
         test_loss.append(loss.item())
         test_re.append(RE.item())
