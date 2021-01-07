@@ -353,7 +353,7 @@ def train(model, train_loader, config, test_loader):
         epoch_loss = train_loss / config["batch_size"]
         epoch_re = train_re / config["batch_size"]
         epoch_kl = train_kl / config["batch_size"]
-        logger.add_test_epoch(epoch_loss, epoch_re, epoch_kl)
+        logger.add_train_epoch(epoch_loss, epoch_re, epoch_kl)
 
         end_epoch_time = time.time()
         epoch_time_diff = end_epoch_time - start_epoch_time
