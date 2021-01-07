@@ -5,9 +5,13 @@ from freyfaces import freyfaces
 import os
 import torch
 
-for p in ["snapshots/freyfaces", "snapshots/mnist", "plots"]:
-    if not os.path.exists(p):
-        os.makedirs(p)
+for experiment in ["freyfaces", "mnist"]:
+    for prior in ["mog", "vamp", "standard"]:
+        for subfolder in ["images", "models"]:
+            p = f'experiments/{experiment}/{prior}/{subfolder}'
+            if not os.path.exists(p):
+                os.makedirs(p)
+
 
 if torch.cuda.is_available():
     dev = "cuda"
@@ -21,7 +25,7 @@ else:
 device = torch.device(dev)
 
 mnist_config = {
-    "dataset_name": "static_mnist",
+    "dataset_name": "mnist",
     "prior": "vamp",
     # "prior": "mog",
     # "prior": "standard",
@@ -35,8 +39,7 @@ mnist_config = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 5,
-    "file_name_model": "./snapshots/mnist/mnist",
+    "epochs": 4,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -54,8 +57,7 @@ frey_config = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 5,
-    "file_name_model": "./snapshots/freyfaces/freyfaces",
+    "epochs": 1000,
     "pseudo_from_data": False,
     "device": device,
 }
