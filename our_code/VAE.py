@@ -375,6 +375,7 @@ def train(model, train_loader, config, test_loader):
         )
 
         test(model, test_loader, config, logger)
+        logger.dump()
 
         # save parameters
         if epoch % 20 == 0:
