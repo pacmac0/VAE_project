@@ -356,7 +356,6 @@ def train(model, train_loader, config, test_loader):
             train_re += RE.item()
             train_kl += KL.item()
 
-            test(model, test_loader, config, logger, batch=True)
             logger.add_train_batch(loss.item(), RE.item(), KL.item())
 
         epoch_loss = train_loss / config["batch_size"]
