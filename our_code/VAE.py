@@ -50,6 +50,18 @@ class Logger():
         self.trainre.append(re)
         self.trainkl.append(kl)
 
+
+    def add_test_batch(self, loss, re, kl):
+        self.batch_testloss.append(loss)
+        self.batch_testre.append(re)
+        self.batch_testkl.append(kl)
+
+
+    def add_train_batch(self, loss, re, kl):
+        self.batch_trainloss.append(loss)
+        self.batch_trainre.append(re)
+        self.batch_trainkl.append(kl)
+
     def dump(self):
         filename = f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/log'
         json = jsonpickle.encode(self)
@@ -347,6 +359,9 @@ def train(model, train_loader, config, test_loader):
             train_re += RE.item()
             train_kl += KL.item()
 
+            test(model, test_loader, config, logger, batch=True)
+            logger.add_train_batch(loss.item(), RE.item(), KL.item())
+
         epoch_loss = train_loss / config["batch_size"]
         epoch_re = train_re / config["batch_size"]
         epoch_kl = train_kl / config["batch_size"]
@@ -368,7 +383,7 @@ def train(model, train_loader, config, test_loader):
 
 
 
-def test(model, test_loader, config, logger):
+def test(model, test_loader, config, logger, batch=False):
     test_loss = []
     test_re = []
     test_kl = []
@@ -396,11 +411,15 @@ def test(model, test_loader, config, logger):
     mean_loss = sum(test_loss) / len(test_loader)
     mean_re = sum(test_re) / len(test_loader)
     mean_kl = sum(test_kl) / len(test_loader)
-    logger.add_test_epoch(mean_loss, mean_re, mean_kl)
 
-    print(
-        f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
-    )
+    if batch:
+        logger.add_test_batch(mean_loss, mean_re, mean_kl)
+    else:
+        logger.add_test_epoch(mean_loss, mean_re, mean_kl)
+        print(
+            f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
+        )
+
 
 
 def add_pseudo_prior(config, train_data):
