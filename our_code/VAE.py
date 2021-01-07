@@ -30,10 +30,6 @@ class Logger:
         self.trainre = []
         self.trainkl = []
 
-        # The batch logs are a matrix where each row is the batch losses in one epoch.
-        self.batch_trainloss = []
-        self.batch_trainre = []
-        self.batch_trainkl = []
 
     def add_test_epoch(self, loss, re, kl):
         self.testloss.append(loss)
@@ -45,11 +41,6 @@ class Logger:
         self.trainre.append(re)
         self.trainkl.append(kl)
 
-
-    def add_train_batch(self, loss, re, kl):
-        self.batch_trainloss.append(loss)
-        self.batch_trainre.append(re)
-        self.batch_trainkl.append(kl)
 
     def dump(self):
         filename = (
@@ -347,8 +338,6 @@ def train(model, train_loader, config, test_loader):
             train_loss += loss.item()
             train_re += RE.item()
             train_kl += KL.item()
-
-            logger.add_train_batch(loss.item(), RE.item(), KL.item())
 
         epoch_loss = train_loss / config["batch_size"]
         epoch_re = train_re / config["batch_size"]
