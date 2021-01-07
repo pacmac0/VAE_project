@@ -35,10 +35,6 @@ class Logger:
         self.batch_trainre = []
         self.batch_trainkl = []
 
-        self.batch_testloss = []
-        self.batch_testre = []
-        self.batch_testkl = []
-
     def add_test_epoch(self, loss, re, kl):
         self.testloss.append(loss)
         self.testre.append(re)
@@ -49,10 +45,6 @@ class Logger:
         self.trainre.append(re)
         self.trainkl.append(kl)
 
-    def add_test_batch(self, loss, re, kl):
-        self.batch_testloss.append(loss)
-        self.batch_testre.append(re)
-        self.batch_testkl.append(kl)
 
     def add_train_batch(self, loss, re, kl):
         self.batch_trainloss.append(loss)
@@ -376,10 +368,9 @@ def train(model, train_loader, config, test_loader):
         # save parameters
         if epoch % 20 == 0:
             generate(model, config, epoch)
-    logger.dump()
 
 
-def test(model, test_loader, config, logger, batch=False):
+def test(model, test_loader, config, logger):
     test_loss = []
     test_re = []
     test_kl = []
@@ -408,13 +399,10 @@ def test(model, test_loader, config, logger, batch=False):
     mean_re = sum(test_re) / len(test_loader)
     mean_kl = sum(test_kl) / len(test_loader)
 
-    if batch:
-        logger.add_test_batch(mean_loss, mean_re, mean_kl)
-    else:
-        logger.add_test_epoch(mean_loss, mean_re, mean_kl)
-        print(
-            f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
-        )
+    logger.add_test_epoch(mean_loss, mean_re, mean_kl)
+    print(
+        f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
+    )
 
 
 def add_pseudo_prior(config, train_data):
