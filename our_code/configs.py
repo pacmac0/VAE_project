@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import torch
+import os
 
 if torch.cuda.is_available():
     dev = "cuda"
@@ -7,7 +8,7 @@ if torch.cuda.is_available():
 else:
     dev = "cpu"
     #torch.set_num_threads(len(os.sched_getaffinity(0)))  # threading on cpu only
-    torch.set_num_threads(8)  # threading on cpu only
+    torch.set_num_threads(os.cpu_count())  # threading on cpu only
     print("Using CPU")
 
 device = torch.device(dev)

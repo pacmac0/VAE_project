@@ -14,8 +14,6 @@ for experiment in ["freyfaces", "mnist"]:
                 os.makedirs(p)
 
 
-
-
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 
 freyfaces(configs.frey_vamp)
