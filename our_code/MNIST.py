@@ -70,7 +70,6 @@ def mnist(config):
     train_loader, eval_loader, test_loader = load_static_mnist(config)
 
     # If a snapshot exist in /snapshots then use trained weights
-    config["file_name_model"]
     model = VAE(config)
     model.to(config["device"])
 

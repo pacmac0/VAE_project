@@ -5,7 +5,7 @@ from freyfaces import freyfaces
 import os
 import torch
 
-for p in ["snapshots/freyfaces", "snapshots/mnist", "plots"]:
+for p in ["experiments/freyfaces/mog", "experiments/freyfaces/vamp", "experiments/freyfaces/standard", "experiments/mnist/mog", "plots", "experiments/mnist/vamp", "experiments/mnist/standard"]:
     if not os.path.exists(p):
         os.makedirs(p)
 
@@ -21,7 +21,7 @@ else:
 device = torch.device(dev)
 
 mnist_config = {
-    "dataset_name": "static_mnist",
+    "dataset_name": "mnist",
     "prior": "vamp",
     # "prior": "mog",
     # "prior": "standard",
@@ -35,8 +35,7 @@ mnist_config = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 5,
-    "file_name_model": "./snapshots/mnist/mnist",
+    "epochs": 4,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -54,8 +53,7 @@ frey_config = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 5,
-    "file_name_model": "./snapshots/freyfaces/freyfaces",
+    "epochs": 4,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -64,7 +62,7 @@ frey_config = {
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 
 # vampprior
-freyfaces(frey_config)
+# freyfaces(frey_config)
 mnist(mnist_config)
 
 frey_config["prior"] = "standard"

@@ -15,7 +15,6 @@ from distribution_helpers import (
     log_Logistic_256
 )
 from eval_generate import generate
-from pseudos_plot import plot_pseudos
 
 # https://arxiv.org/abs/1612.08083 [8], eq. (1), ch.2
 class GatedDense(nn.Module):
@@ -301,7 +300,7 @@ def train(model, train_loader, config, test_loader):
             optimizer.zero_grad()
             # get input, data as the list of [data, label]
 
-            if config["dataset_name"] == "static_mnist":
+            if config["dataset_name"] == "mnist":
                 data, _ = data
             data = data.to(config["device"])
 
@@ -342,23 +341,12 @@ def train(model, train_loader, config, test_loader):
         test_loss_values_per_epoch["test_re"].append(test_re)
         test_loss_values_per_epoch["test_kl"].append(test_kl)
 
-        modelname = f'{config["file_name_model"]}_epoch{epoch}'
         # save parameters
-        with open(modelname, "wb") as f:
-            torch.save(model, f)
-        generate(modelname, config["input_size"], modelname + ".png")
-        if config["prior"] == "vamp":
-            plot_pseudos(modelname, config["input_size"], modelname + "_pseudos.png")
+        generate(model, config, epoch)
 
 
     with open("plots/{}".format(filename), "w+") as fp:
         json.dump(test_loss_values_per_epoch, fp)
-
-    modelname = f'{config["file_name_model"]}'
-    # save parameters
-    with open(modelname, "wb") as f:
-        torch.save(model, f)
-    generate(modelname, config["input_size"], modelname + ".png")
 
 def test(model, test_loader, config):
     test_loss = []
@@ -370,7 +358,7 @@ def test(model, test_loader, config):
 
     for data in test_loader:
         # get input, data as the list of [data, label]
-        if config["dataset_name"] == "static_mnist":
+        if config["dataset_name"] == "mnist":
             data, _ = data
         else:
             data = data
