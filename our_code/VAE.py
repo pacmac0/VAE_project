@@ -19,6 +19,8 @@ from eval_generate import generate
 class Logger():
     def __init__(self, config):
         self.config = config
+
+        # Each entry corresponds to the average in 1 epoch.
         self.testloss = []
         self.testre = []
         self.testkl = []
@@ -27,8 +29,29 @@ class Logger():
         self.trainre = []
         self.trainkl = []
 
+        # The batch logs are a matrix where each row is the batch losses in one epoch.
+        self.batch_trainloss = []
+        self.batch_trainre = []
+        self.batch_trainkl = []
+
+        self.batch_testloss = []
+        self.batch_testre = []
+        self.batch_testkl = []
+
+
+    def add_test_epoch(self, loss, re, kl):
+        self.testloss.append(loss)
+        self.testre.append(re)
+        self.testkl.append(kl)
+
+
+    def add_train_epoch(self, loss, re, kl):
+        self.trainloss.append(loss)
+        self.trainre.append(re)
+        self.trainkl.append(kl)
+
     def dump(self):
-        filename = f'experiments/{config["dataset_name"]}/{config["prior"]}/log'
+        filename = f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/log'
         json = jsonpickle.encode(self)
         with open(filename, "w+") as f:
             f.write(json)
@@ -51,7 +74,6 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         self.config = config
         self.n_hidden = 300
-        self.logger = Logger(config)
 
         # encoder q(z|x)
         self.encoder = nn.Sequential(
@@ -282,27 +304,12 @@ class VAE(nn.Module):
 
 
 def train(model, train_loader, config, test_loader):
+    logger = Logger(config)
+
     torch.autograd.set_detect_anomaly(True)  # trace err if nan values
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
-    filename = "{}_{}_lossvalues_test_per_epoch.json".format(
-        config["dataset_name"], config["prior"]
-    )
-    test_loss_values_per_epoch = {
-        "model_name": filename,
-        "test_loss": [],
-        "test_re": [],
-        "test_kl": [],
-        "number_epochs": config["epochs"],
-        "prior": config["prior"],
-        "pseudo_components": config["pseudo_components"],
-        "learning_rate": config["learning_rate"],
-        "hidden_components": config["z1_size"],
-    }
-    train_loss_per_epoch = []
-    train_re_per_epoch = []
-    train_kl_per_epoch = []
     for epoch in range(1, config["epochs"] + 1):
         # Warm up
         # https://arxiv.org/abs/1511.06349 [5], KL cost annealing, ch.3.
@@ -311,10 +318,9 @@ def train(model, train_loader, config, test_loader):
             beta = 1.0
         print(f"beta: {beta}")
 
-        train_loss = []
-        train_re = []
-        train_kl = []
-        train_beta = []
+        train_loss = 0
+        train_re = 0
+        train_kl = 0
 
         start_epoch_time = time.time()
 
@@ -337,15 +343,14 @@ def train(model, train_loader, config, test_loader):
             loss.backward()
             optimizer.step()
 
-            # collect epoch statistics
-            train_loss.append(loss.item())
-            train_re.append(RE.item())
-            train_kl.append(KL.item())
-            train_beta.append(beta)
+            train_loss += loss.item()
+            train_re += RE.item()
+            train_kl += KL.item()
 
-        epoch_loss = sum(train_loss) / len(train_loader)
-        epoch_re = sum(train_re) / len(train_loader)
-        epoch_kl = sum(train_kl) / len(train_loader)
+        epoch_loss = train_loss / config["batch_size"]
+        epoch_re = train_re / config["batch_size"]
+        epoch_kl = train_kl / config["batch_size"]
+        logger.add_test_epoch(epoch_loss, epoch_re, epoch_kl)
 
         end_epoch_time = time.time()
         epoch_time_diff = end_epoch_time - start_epoch_time
@@ -353,25 +358,17 @@ def train(model, train_loader, config, test_loader):
         print(
             f"Epoch: {epoch}; loss: {epoch_loss:.3f}, RE: {epoch_re:.3f}, KL: {epoch_kl:.3f}, time elapsed: {epoch_time_diff:.3f}"
         )
-        # add values per batch to epoch
-        train_loss_per_epoch.append(epoch_loss)
-        train_re_per_epoch.append(epoch_re)
-        train_kl_per_epoch.append(epoch_kl)
 
-        test_loss, test_re, test_kl = test(model, test_loader, config)
-        test_loss_values_per_epoch["test_loss"].append(test_loss)
-        test_loss_values_per_epoch["test_re"].append(test_re)
-        test_loss_values_per_epoch["test_kl"].append(test_kl)
+        test(model, test_loader, config, logger)
 
         # save parameters
         if epoch % 20 == 0:
             generate(model, config, epoch)
-
-    with open("plots/{}".format(filename), "w+") as fp:
-        json.dump(test_loss_values_per_epoch, fp)
+    logger.dump()
 
 
-def test(model, test_loader, config):
+
+def test(model, test_loader, config, logger):
     test_loss = []
     test_re = []
     test_kl = []
@@ -399,30 +396,11 @@ def test(model, test_loader, config):
     mean_loss = sum(test_loss) / len(test_loader)
     mean_re = sum(test_re) / len(test_loader)
     mean_kl = sum(test_kl) / len(test_loader)
-
-    # store loss-values for plotting
-    filename = "{}_{}__lossvalues_test.json".format(
-        config["dataset_name"], config["prior"]
-    )
-    loss_values_per_batch = {
-        "model_name": filename,
-        "test_loss": test_loss,
-        "test_re": test_re,
-        "test_kl": test_kl,
-        "number_epochs": config["epochs"],
-        "prior": config["prior"],
-        "pseudo_components": config["pseudo_components"],
-        "learning_rate": config["learning_rate"],
-        "hidden_components": config["z1_size"],
-    }
-
-    with open("plots/{}".format(filename), "w+") as fp:
-        json.dump(loss_values_per_batch, fp)
+    logger.add_test_epoch(mean_loss, mean_re, mean_kl)
 
     print(
         f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
     )
-    return mean_loss, mean_re, mean_kl
 
 
 def add_pseudo_prior(config, train_data):

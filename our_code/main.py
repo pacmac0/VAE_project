@@ -7,7 +7,7 @@ import torch
 
 for experiment in ["freyfaces", "mnist"]:
     for prior in ["mog", "vamp", "standard"]:
-        for subfolder in ["images", "models", "logs"]:
+        for subfolder in ["images", "models"]:
             p = f'experiments/{experiment}/{prior}/{subfolder}'
             if not os.path.exists(p):
                 os.makedirs(p)
@@ -19,7 +19,7 @@ if torch.cuda.is_available():
 else:
     dev = "cpu"
     #torch.set_num_threads(len(os.sched_getaffinity(0)))  # threading on cpu only
-    torch.set_num_threads(16)  # threading on cpu only
+    torch.set_num_threads(8)  # threading on cpu only
     print("Using CPU")
 
 device = torch.device(dev)
@@ -39,7 +39,7 @@ mnist_config = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 1000,
+    "epochs": 10,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -57,7 +57,7 @@ frey_config = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 1000,
+    "epochs": 10,
     "pseudo_from_data": False,
     "device": device,
 }

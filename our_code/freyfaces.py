@@ -37,4 +37,3 @@ def freyfaces(config):
         config,
         test_loader
     )
-    test(model, test_loader, config)
