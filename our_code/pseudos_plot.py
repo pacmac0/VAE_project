@@ -27,3 +27,4 @@ def plot_pseudos(model, shape, img_filename):
 
     plt.savefig(img_filename)
     plt.clf()
+    plt.close('all')
