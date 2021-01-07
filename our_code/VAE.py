@@ -122,7 +122,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
+                        ("activation", nn.Hardtanh(min_val=-2, max_val=2)),
                     ]
                 )
             )
@@ -137,7 +137,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
+                        ("activation", nn.Hardtanh(min_val=-2, max_val=2)),
                     ]
                 )
             )
