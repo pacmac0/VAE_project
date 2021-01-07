@@ -84,7 +84,7 @@ frey_vamp = {
     "device": device,
 }
 
-frey__mog = {
+frey_mog = {
     "dataset_name": "freyfaces",
     "prior": "mog",
     "pseudo_components": 500,
