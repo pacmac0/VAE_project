@@ -12,7 +12,7 @@ def generate(model, config, epoch):
     samples = samples.data.cpu().numpy()
 
     plt.clf()
-    fig = plt.figure(figsize=(5, 5))
+    plt.figure(figsize=(5, 5))
     gs = gridspec.GridSpec(5, 5)
     gs.update(wspace=0.05, hspace=0.05)
 
@@ -28,9 +28,9 @@ def generate(model, config, epoch):
         sample = sample[:, :, 0]
         plt.imshow(sample, cmap="gray")
 
-    filename = f'experiments/{config["dataset_name"]}/{config["prior"]}/epoch_{epoch}'
-    save_model(model, filename + ".model")
-    plt.savefig(filename + ".png")
+    filename = f'experiments/{config["dataset_name"]}/{config["prior"]}' #/epoch_{epoch}'
+    save_model(model, filename + f"/models/epoch{epoch}.model")
+    plt.savefig(filename + f"/images/epoch{epoch}.png")
 
     if config["prior"] == "vamp":
-        plot_pseudos(model, config["input_size"], filename + "_pseudos.png")
+        plot_pseudos(model, config["input_size"], filename + "/images/epoch{epoch}_pseudos.png")

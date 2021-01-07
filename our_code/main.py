@@ -5,9 +5,13 @@ from freyfaces import freyfaces
 import os
 import torch
 
-for p in ["experiments/freyfaces/mog", "experiments/freyfaces/vamp", "experiments/freyfaces/standard", "experiments/mnist/mog", "plots", "experiments/mnist/vamp", "experiments/mnist/standard"]:
-    if not os.path.exists(p):
-        os.makedirs(p)
+for experiment in ["freyfaces", "mnist"]:
+    for prior in ["mog", "vamp", "standard"]:
+        for subfolder in ["images", "models"]:
+            p = f'experiments/{experiment}/{prior}/{subfolder}'
+            if not os.path.exists(p):
+                os.makedirs(p)
+
 
 if torch.cuda.is_available():
     dev = "cuda"
