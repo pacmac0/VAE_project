@@ -7,7 +7,6 @@ if torch.cuda.is_available():
     print("Using GPU Cuda")
 else:
     dev = "cpu"
-    #torch.set_num_threads(len(os.sched_getaffinity(0)))  # threading on cpu only
     torch.set_num_threads(os.cpu_count())  # threading on cpu only
     print("Using CPU")
 
@@ -25,7 +24,7 @@ mnist_vamp = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 30,
+    "epochs": 2000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -43,11 +42,10 @@ mnist_standard = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 30,
+    "epochs": 2000,
     "pseudo_from_data": False,
     "device": device,
 }
-
 
 
 mnist_mog = {
@@ -63,7 +61,7 @@ mnist_mog = {
     "pseudoinputs_std": 0.01,
     "pseudoinputs_mean": 0.05,
     "learning_rate": 0.0005,
-    "epochs": 30,
+    "epochs": 2000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -79,7 +77,7 @@ frey_vamp = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 30,
+    "epochs": 2000,
     "pseudo_from_data": False,
     "device": device,
 }
@@ -94,7 +92,7 @@ frey_mog = {
     "input_size": [1, 28, 20],
     "input_type": "cont",
     "learning_rate": 0.0005,
-    "epochs": 30,
+    "epochs": 2000,
     "pseudo_from_data": False,
     "device": device,
 }

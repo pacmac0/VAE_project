@@ -308,7 +308,6 @@ def train(model, train_loader, config, test_loader):
         beta = 1.0 * epoch / config["warmup"]
         if beta > 1.0:
             beta = 1.0
-        print(f"beta: {beta}")
 
         train_loss = 0
         train_re = 0
@@ -348,7 +347,7 @@ def train(model, train_loader, config, test_loader):
         epoch_time_diff = end_epoch_time - start_epoch_time
 
         print(
-            f"Epoch: {epoch}; loss: {epoch_loss:.3f}, RE: {epoch_re:.3f}, KL: {epoch_kl:.3f}, time elapsed: {epoch_time_diff:.3f}"
+            f"{config['dataset_name']}, {config['prior']}, epoch: {epoch}: loss: {epoch_loss:.3f}, RE: {epoch_re:.3f}, KL: {epoch_kl:.3f}, time elapsed: {epoch_time_diff:.3f}"
         )
 
         test(model, test_loader, config, logger)
