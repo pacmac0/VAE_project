@@ -16,7 +16,8 @@ from distribution_helpers import (
 )
 from eval_generate import generate
 
-class Logger():
+
+class Logger:
     def __init__(self, config):
         self.config = config
 
@@ -38,24 +39,20 @@ class Logger():
         self.batch_testre = []
         self.batch_testkl = []
 
-
     def add_test_epoch(self, loss, re, kl):
         self.testloss.append(loss)
         self.testre.append(re)
         self.testkl.append(kl)
-
 
     def add_train_epoch(self, loss, re, kl):
         self.trainloss.append(loss)
         self.trainre.append(re)
         self.trainkl.append(kl)
 
-
     def add_test_batch(self, loss, re, kl):
         self.batch_testloss.append(loss)
         self.batch_testre.append(re)
         self.batch_testkl.append(kl)
-
 
     def add_train_batch(self, loss, re, kl):
         self.batch_trainloss.append(loss)
@@ -63,7 +60,9 @@ class Logger():
         self.batch_trainkl.append(kl)
 
     def dump(self):
-        filename = f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/log'
+        filename = (
+            f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/log'
+        )
         json = jsonpickle.encode(self)
         with open(filename, "w+") as f:
             f.write(json)
@@ -264,7 +263,6 @@ class VAE(nn.Module):
         else:  # std gaussian
             return log_Normal_standard(z, dim=1)
 
-
     # Loss function: -rec.err + beta*KL-div
     def get_loss(self, x, mean_enc, logvar_enc, z, mean_dec, logvar_dec, beta=1):
         # Different types of data have different likelihoods
@@ -281,7 +279,6 @@ class VAE(nn.Module):
         kl = -(log_prior - log_dec_posterior)
         l = -re + beta * kl
         return torch.mean(l), torch.mean(re), torch.mean(kl)
-
 
     def generate_samples(self, N=25):
         if self.config["prior"] == "vamp":
@@ -383,7 +380,6 @@ def train(model, train_loader, config, test_loader):
     logger.dump()
 
 
-
 def test(model, test_loader, config, logger, batch=False):
     test_loss = []
     test_re = []
@@ -420,7 +416,6 @@ def test(model, test_loader, config, logger, batch=False):
         print(
             f"Test results: loss avg: {mean_loss:.3f}, RE avg: {mean_re:.3f}, KL: {mean_kl:.3f}"
         )
-
 
 
 def add_pseudo_prior(config, train_data):
