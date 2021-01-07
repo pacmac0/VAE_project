@@ -12,6 +12,7 @@ def generate(model, config, epoch):
     samples = samples.data.cpu().numpy()
 
     plt.clf()
+    plt.close('all')
     plt.figure(figsize=(5, 5))
     gs = gridspec.GridSpec(5, 5)
     gs.update(wspace=0.05, hspace=0.05)
