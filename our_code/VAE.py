@@ -342,8 +342,8 @@ def train(model, train_loader, config, test_loader):
         test_loss_values_per_epoch["test_kl"].append(test_kl)
 
         # save parameters
-        # if epoch % 9 == 0:
-        generate(model, config, epoch)
+        if epoch % 20 == 0:
+            generate(model, config, epoch)
 
 
     with open("plots/{}".format(filename), "w+") as fp:
