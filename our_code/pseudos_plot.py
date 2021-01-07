@@ -3,22 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 # only works for vampprior 
-def plot_pseudos(modelpath, shape, img_filename):
-    if torch.cuda.is_available():
-        device = torch.device("gpu")
-        with open(modelpath, "rb") as f:
-            model = torch.load(f).to(device)
-    else:
-        device = torch.device("cpu")
-        with open(modelpath, "rb") as f:
-            model = torch.load(f, map_location=torch.device("cpu")).to(device)
-
-    # N = 25 number of pseudos (out of K=500) standard setting 
+def plot_pseudos(model, shape, img_filename):
+    # N = 25 number of pseudos (out of K=500) standard setting
     pseudo_inputs = model.get_pseudos()
 
     pseudo_inputs = pseudo_inputs.data.cpu().numpy()
 
-    fig = plt.figure(figsize=(5, 5))
+    plt.figure(figsize=(5, 5))
     gs = gridspec.GridSpec(5, 5)
     gs.update(wspace=0.05, hspace=0.05)
 
@@ -35,3 +26,4 @@ def plot_pseudos(modelpath, shape, img_filename):
         plt.imshow(sample, cmap="gray")
 
     plt.savefig(img_filename)
+    plt.clf()

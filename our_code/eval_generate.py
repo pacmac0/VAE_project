@@ -1,23 +1,19 @@
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from pseudos_plot import plot_pseudos
 
+def save_model(model, name):
+    with open(name, "wb") as f:
+        torch.save(model, f)
 
-def generate(modelpath, shape, img_filename):
-    if torch.cuda.is_available():
-        device = torch.device("gpu")
-        with open(modelpath, "rb") as f:
-            model = torch.load(f).to(device)
-    else:
-        device = torch.device("cpu")
-        with open(modelpath, "rb") as f:
-            model = torch.load(f, map_location=torch.device("cpu")).to(device)
-
+def generate(model, config, epoch):
     samples = model.generate_samples()
     samples = samples.data.cpu().numpy()
 
     plt.clf()
-    fig = plt.figure(figsize=(5, 5))
+    plt.close('all')
+    plt.figure(figsize=(5, 5))
     gs = gridspec.GridSpec(5, 5)
     gs.update(wspace=0.05, hspace=0.05)
 
@@ -27,10 +23,15 @@ def generate(modelpath, shape, img_filename):
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         ax.set_aspect("equal")
-        sample = sample.reshape(shape)
+        sample = sample.reshape(config["input_size"])
         sample = sample.swapaxes(0, 2)
         sample = sample.swapaxes(0, 1)
         sample = sample[:, :, 0]
         plt.imshow(sample, cmap="gray")
 
-    plt.savefig(img_filename)
+    filename = f'experiments/{config["dataset_name"]}/{config["prior"]}' #/epoch_{epoch}'
+    save_model(model, filename + f"/models/epoch{epoch}.model")
+    plt.savefig(filename + f"/images/epoch{epoch}.png")
+
+    if config["prior"] == "vamp":
+        plot_pseudos(model, config["input_size"], filename + "/images/epoch{epoch}_pseudos.png")
