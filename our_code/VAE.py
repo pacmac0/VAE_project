@@ -121,7 +121,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=-2, max_val=2)),
+                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
                     ]
                 )
             )
@@ -203,7 +203,10 @@ class VAE(nn.Module):
             mean = mean.unsqueeze(0)
             logvar = mean.unsqueeze(0)
 
-            logs = log_Normal_diag(z, mean, logvar, dim=1)
+            if self.config['input_type'] == 'binary':
+                logs = log_Bernoulli(z, mean, dim=1)
+            else:
+                logs = log_Normal_diag(z, mean, logvar, dim=1)
             s = torch.sum(torch.exp(logs))
             K = self.config["pseudo_components"]
             return torch.log(s / K)
@@ -239,8 +242,11 @@ class VAE(nn.Module):
             z_samples = self.sample_z(ps_mean_enc, ps_logvar_enc)
         elif self.config["prior"] == "mog":
             mean = self.mog_means(self.gradient_start)[0:N]
-            logvar = self.mog_logvar(self.gradient_start)[0:N]
-            z_samples = self.sample_z(mean, logvar)
+            if self.config['input_type'] == 'binary':
+                z_samples = torch.bernoulli(mean)
+            else: 
+                logvar = self.mog_logvar(self.gradient_start)[0:N]
+                z_samples = self.sample_z(mean, logvar)
         else:  # standard prior
             # sample N latent points from std gaussian prior
             z_samples = Variable(
