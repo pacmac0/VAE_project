@@ -16,12 +16,12 @@ for experiment in ["freyfaces", "mnist"]:
 
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 
-freyfaces(configs.frey_vamp)
-mnist(configs.mnist_vamp)
+# freyfaces(configs.frey_vamp)
+# mnist(configs.mnist_vamp)
 
 
-freyfaces(configs.frey_standard)
-mnist(configs.mnist_standard)
+# freyfaces(configs.frey_standard)
+# mnist(configs.mnist_standard)
 
-freyfaces(configs.frey_mog)
+# freyfaces(configs.frey_mog)
 mnist(configs.mnist_mog)

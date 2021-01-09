@@ -146,6 +146,10 @@ class VAE(nn.Module):
 
         if self.config["prior"] == "mog":
             # TODO: tune interval for activation functions
+            min_val, max_val = -2, 2
+            if self.config['input_type'] == 'binary':
+                min_val, max_val = 0.0001, 0.9999
+
             self.mog_means = nn.Sequential(
                 OrderedDict(
                     [
@@ -157,7 +161,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
+                        ("activation", nn.Hardtanh(min_val=min_val, max_val=max_val)),
                     ]
                 )
             )
@@ -172,7 +176,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=-2, max_val=2)),
+                        ("activation", nn.Hardtanh(min_val=min_val, max_val=max_val)),
                     ]
                 )
             )
@@ -189,8 +193,13 @@ class VAE(nn.Module):
             # self.mog_means.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
             # self.mog_logvar.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
             # TODO: should we use xavier init here?
-            torch.nn.init.xavier_uniform_(self.mog_means.linear.weight)
-            torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
+            if self.config['input_type'] == 'binary':
+                self.mog_means.linear.weight.data.normal_(
+                    self.config["pseudo_mean"], self.config["pseudo_std"]
+                )
+            else:
+                torch.nn.init.xavier_uniform_(self.mog_means.linear.weight)
+                torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
 
     # re-parameterization
     # enough to sample one point if batches large enough,
@@ -238,6 +247,8 @@ class VAE(nn.Module):
             z = z.unsqueeze(1)
             mean = mean.unsqueeze(0)
             logvar = mean.unsqueeze(0)
+
+            print('mean', mean)
 
             if self.config['input_type'] == 'binary':
                 logs = log_Bernoulli(z, mean, dim=1)
