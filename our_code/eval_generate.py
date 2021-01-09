@@ -34,4 +34,4 @@ def generate(model, config, epoch):
     plt.savefig(filename + f"/images/epoch{epoch}.png")
 
     if config["prior"] == "vamp":
-        plot_pseudos(model, config["input_size"], filename + "/images/epoch{epoch}_pseudos.png")
+        plot_pseudos(model, config["input_size"], filename + f"/images/epoch{epoch}_pseudos.png")
