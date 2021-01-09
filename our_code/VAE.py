@@ -146,6 +146,10 @@ class VAE(nn.Module):
 
         if self.config["prior"] == "mog":
             # TODO: tune interval for activation functions
+            min_val, max_val = -2, 2
+            if self.config['input_type'] == 'binary':
+                min_val, max_val = 0.0001, 0.9999
+
             self.mog_means = nn.Sequential(
                 OrderedDict(
                     [
@@ -157,7 +161,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
+                        ("activation", nn.Hardtanh(min_val=min_val, max_val=max_val)),
                     ]
                 )
             )
@@ -172,7 +176,7 @@ class VAE(nn.Module):
                                 bias=False,
                             ),
                         ),
-                        ("activation", nn.Hardtanh(min_val=0, max_val=1)),
+                        ("activation", nn.Hardtanh(min_val=min_val, max_val=max_val)),
                     ]
                 )
             )
@@ -189,6 +193,11 @@ class VAE(nn.Module):
             # self.mog_means.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
             # self.mog_logvar.linear.weight.data.normal_(self.config['pseudo_mean'], self.config['pseudo_std'])
             # TODO: should we use xavier init here?
+            # if self.config['input_type'] == 'binary':
+            #     self.mog_means.linear.weight.data.normal_(
+            #         self.config["pseudo_mean"], self.config["pseudo_std"]
+            #     )
+            # else:
             torch.nn.init.xavier_uniform_(self.mog_means.linear.weight)
             torch.nn.init.xavier_uniform_(self.mog_logvar.linear.weight)
 
@@ -239,6 +248,10 @@ class VAE(nn.Module):
             mean = mean.unsqueeze(0)
             logvar = mean.unsqueeze(0)
 
+            if self.config['input_type'] == 'binary':
+                # Threshold the mean and variance to just [0, 1]
+                mean = (mean > 0.5).float()
+
             logs = log_Normal_diag(z, mean, logvar, dim=1)
             s = torch.sum(torch.exp(logs))
             K = self.config["pseudo_components"]
@@ -277,6 +290,9 @@ class VAE(nn.Module):
             mean = self.mog_means(self.gradient_start)[0:N]
             logvar = self.mog_logvar(self.gradient_start)[0:N]
             z_samples = self.sample_z(mean, logvar)
+            if self.config['input_type'] == 'binary':
+                # Threshold z_samples to [0, 1]
+                z_samples = (z_samples > 0.5).float()
         else:  # standard prior
             # sample N latent points from std gaussian prior
             z_samples = Variable(
@@ -354,8 +370,8 @@ def train(model, train_loader, config, test_loader):
         logger.dump()
 
         # save parameters
-        if epoch % 20 == 0:
-            generate(model, config, epoch)
+        # if epoch % 20 == 0:
+        generate(model, config, epoch)
 
 
 def test(model, test_loader, config, logger):

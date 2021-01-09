@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from pseudos_plot import plot_pseudos
@@ -27,6 +28,8 @@ def generate(model, config, epoch):
         sample = sample.swapaxes(0, 2)
         sample = sample.swapaxes(0, 1)
         sample = sample[:, :, 0]
+        if (config['input_type'] == 'binary'):
+            sample = (sample > 0.5).astype(np.int_)
         plt.imshow(sample, cmap="gray")
 
     filename = f'experiments/{config["dataset_name"]}/{config["prior"]}' #/epoch_{epoch}'
