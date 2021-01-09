@@ -43,9 +43,13 @@ class Logger:
 
 
     def dump(self):
-        filename = (
-            f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/log'
-        )
+        if self.config["dataset_name"] == "freyfaces" and self.config["prior"] == "vamp":
+            if self.config["pseudo_from_data"] == True:
+                filename = f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/pseudo_from_data/log' #/epoch_{epoch}'
+            else:
+                filename = f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/not_pseudo_from_data/log' #/epoch_{epoch}'
+        else:
+            filename = f'experiments/{self.config["dataset_name"]}/{self.config["prior"]}/log' #/epoch_{epoch}'
         json = jsonpickle.encode(self)
         with open(filename, "w+") as f:
             f.write(json)
@@ -370,8 +374,8 @@ def train(model, train_loader, config, test_loader):
         logger.dump()
 
         # save parameters
-        # if epoch % 20 == 0:
-        generate(model, config, epoch)
+        if epoch % 20 == 0:
+            generate(model, config, epoch)
 
 
 def test(model, test_loader, config, logger):

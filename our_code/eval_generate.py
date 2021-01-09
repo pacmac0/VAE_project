@@ -32,7 +32,13 @@ def generate(model, config, epoch):
             sample = (sample > 0.5).astype(np.int_)
         plt.imshow(sample, cmap="gray")
 
-    filename = f'experiments/{config["dataset_name"]}/{config["prior"]}' #/epoch_{epoch}'
+    if config["dataset_name"] == "freyfaces" and config["prior"] == "vamp":
+        if config["pseudo_from_data"] == True:
+            filename = f'experiments/{config["dataset_name"]}/{config["prior"]}/pseudo_from_data' #/epoch_{epoch}'
+        else:
+            filename = f'experiments/{config["dataset_name"]}/{config["prior"]}/not_pseudo_from_data' #/epoch_{epoch}'
+    else:
+        filename = f'experiments/{config["dataset_name"]}/{config["prior"]}' #/epoch_{epoch}'
     save_model(model, filename + f"/models/epoch{epoch}.model")
     plt.savefig(filename + f"/images/epoch{epoch}.png")
 
