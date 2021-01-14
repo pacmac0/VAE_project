@@ -20,6 +20,10 @@ for experiment in ["mnist", "freyfaces"]:
                 if not os.path.exists(p):
                     os.makedirs(p)
 
+
+
+mnist(configs.mnist_vamp)
+plot.plot("experiments/mnist/vamp/not_pseudo_from_data/log","MNIST vampprior, without pseudos from data", "MNIST_vamp_without_pseudos_from_data", ["train_loss", "test_loss", "test_re", "test_kl", "train_re", "train_kl"])
 # download http://www.cs.nyu.edu/~roweis/data/frey_rawface.mat to "datasets/freyfaces/frey_rawface.mat"
 
 # freyfaces(configs.frey_vamp) # pseudo_from_data = True
