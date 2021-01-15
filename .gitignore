@@ -144,10 +144,10 @@ dmypy.json
 cython_debug/
 code_of_paper/datasets
 code_of_paper/snapshots
-our_code/datasets
-our_code/snapshots/
-our_code/plots/
+src/datasets
+src/snapshots/
+src/plots/
 /outputs/
-/our_code/experiments/
-/our_code/experiments_weights_from_training/
+/src/experiments/
+/src/experiments_weights_from_training/
 .ipython-checkpoints
