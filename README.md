@@ -12,3 +12,6 @@ Install packages in requirements.txt using pip. Set relevant settings in configs
 
 # Results
 Can be found in experiments/ directory
+
+# Visualization
+To reproduce the plots and visualizations in the report, one could look at the Jupyter notebook located in `src/analytics.ipynb`

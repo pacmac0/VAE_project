@@ -150,3 +150,4 @@ our_code/plots/
 /outputs/
 /our_code/experiments/
 /our_code/experiments_weights_from_training/
+.ipython-checkpoints

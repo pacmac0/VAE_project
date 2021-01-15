@@ -1,0 +1,1 @@
+{"model_name": "freyfaces_mog__lossvalues_test.json", "test_loss": [1779.80859375, 1761.6978759765625], "test_re": [-1812.2957763671875, -1799.7384033203125], "test_kl": [-32.48725509643555, -38.04050827026367], "number_epochs": 2000, "prior": "mog", "pseudo_components": 500, "learning_rate": 0.0005, "hidden_components": 40}
